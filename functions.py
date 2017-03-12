@@ -9,7 +9,7 @@ def get_all_remaining(empty_cells):
     possible_values = set()
     
     for cell in empty_cells:
-        possible_values = possible_values.union(remaining(cell[0],cell[1],cell[2]))
+        possible_values = possible_values.union(cell.get_range())       # Union of all of the sets of possible values for these cells
     
     return possible_values
 
@@ -17,16 +17,18 @@ def get_all_remaining(empty_cells):
 #################################################################
 
 
-def remaining(Row, Col, Unit):
+def remaining(Row, Col, Unit, Cell):
     
     """ Get the set of remaining possible values
     for a cell """
-    
-    all_vals = set(range(1,10))
-    row_vals = set(Row.value)
-    col_vals = set(Col.value)
-    unit_vals = Unit.full_list()
-    return all_vals.difference(row_vals | col_vals | unit_vals)     # | denotes union
+    if Cell.value == 0:   
+        all_vals = set(range(1,10))
+        row_vals = set(Row.value)
+        col_vals = set(Col.value)
+        unit_vals = Unit.full_list()
+        return all_vals.difference(row_vals | col_vals | unit_vals)     # | denotes union
+    else:
+        return set()
     
 #################################################################
 #################################################################
@@ -56,6 +58,30 @@ def get_unit_row_column(act_row, act_col):                          # Necessary 
         
     return (unit_row, unit_col)
     
+#################################################################
+#################################################################
+
+def get_base(row, col):
+    
+    """ Return the base row and column
+    of the unit for a given cell """
+    
+    if row >= 6:                                                    # For row number, get the base row number (i.e. where the unit starts)
+        base_row = 6
+    elif row >= 3:
+        base_row = 3
+    else:
+        base_row = 0
+        
+    if col >= 6:                                                    # For column number, get the base column number (i.e. where the unit starts)
+        base_col = 6
+    elif col >= 3:
+        base_col = 3
+    else:
+        base_col = 0
+    
+    return (base_row, base_col)                                     # Return base (row, column) tuple
+        
 #################################################################
 #################################################################
         
