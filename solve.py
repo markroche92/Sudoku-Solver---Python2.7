@@ -18,13 +18,6 @@ def solve():
                 if Grid.value[row][col] == 0:                                                               # If this cell is empty
                     i+=1
                     old_range = Grid.range
-
-                    if 4 not in Grid.range[8][1]:
-                        print "missing: {}".format(i)
-                    if i == 12:
-                        for x in old_range:
-                            print "old: {}".format(x)
-                        print "\n"
                     x_wing(row,col,i)
                     if old_range != Grid.range:
                         print "X-wing range update"
@@ -37,7 +30,6 @@ def solve():
                     cell = Grid.get_obj(row, col)                                                           # Get the (Row, Col, Unit, Cell) objects for the (row, col)
                     last_filled = try_fill_last_blank(row, col, cell)
                     if last_filled:
-                        print "last fill {}".format(i)
                         update = True
                         break
 
@@ -51,8 +43,6 @@ def solve():
                         num = options_for_only_this_cell.pop()                                                  # Convert set to integer
                         print "Update called b, cell {},{}, val: {}".format(row, col, num)
                         Grid.update(row, col, num)
-                        for x in Grid.value:
-                            print "{}".format(x)
                         update = True
                         break
 
@@ -60,18 +50,8 @@ def solve():
                     # an option for any other empty cell in the unit, enter this value #
                     final_value = check_empty_unit_possibilities(cell[2], row, col, possibilities_this_cell, i)    # Considers values which can go in empty cells in the same unit. If a value can only go in this cell, return the value
                     if final_value:                                                                             # If final_value not None
-                        print "{}".format(i)
-                        if i == 12:
-                            for x in old_range:
-                                print "old range: {}".format(x)
                         print "Update called c, cell {},{}, val: {}".format(row, col, final_value)
-                        Grid.update(row, col, final_value, i = 12)                                                      # Update objects
-
-                        if i == 12:
-                            for x in Grid.range:
-                                print "new range: {}".format(x)
-                        for x in Grid.value:
-                            print "{}".format(x)
+                        Grid.update(row, col, final_value)                                                      # Update objects
                         update = True
                         break                                                                                   # If the cell has been updated, stop searching through possible values
                                                                                                                 # If the cell has been updated, stop searching through possible values
@@ -79,17 +59,10 @@ def solve():
                         pass
 
                     if len(Grid.range[row][col]) == 1:                                  # If there is only 1 element in cell range (after x-wing)
-                        print "{}".format(i)
                         print "x-wing update {},{}".format(row,col)
                         last_possibility = Grid.range[row][col].pop()
                         Grid.update(row, col, last_possibility)               # Set the cell value to the remaining value in the range
-                        for x in Grid.value:
-                            print "{}".format(x)
 
-
-                    if i == 12:
-                        for x in Grid.range:
-                            print "new: {}".format(x)
                 else:                                               # If the cell is populated, go to the next cell
                     pass
         if not update:                                              # If you have iterated through all rows and columns, without updating, quit and raise flag

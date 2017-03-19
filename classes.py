@@ -50,43 +50,23 @@ class Board:
             full_list.extend(row)
         return full_list
 
-    def update(self, row, col, val, i =0):                                                        # Method to update the values within the puzzle
+    def update(self, row, col, val):                                                        # Method to update the values within the puzzle
 
         """ Updates a single cell of the board
         with a certain value. This entails calling update
         functions for Cell, Row, Col and Unit objects"""
-        if i !=12:
-            (u_row,u_col) = get_unit_row_column(row,col)                                        # Get unit row and unit column (each between 0 and 2)
-            (rel_row, rel_col) = (row - 3*u_row, col - 3*u_col)                                 # Get the relative row and column of the cell within the unit (each between 0 and 2)
-            """ Update values first """
-            self.value[row][col] = val                                                          # Update Board.value
-            self.Rows[row].update(col, val)                                                     # Update Board.Rows
-            self.Cols[col].update(row, val)                                                     # Update Board.Cols
-            self.Units[u_row][u_col].update(rel_row, rel_col, val)                              # Update Board.Units
-            self.Cells[row][col].update(val)                                                    # Update Board.Cells
-            """ Now update ranges """
-            self.range_remove_last_possibility(row,col,val)
-            self.get_cell_ranges()
 
-                                                                      # Update the range attribute after each update]
-        else:
-            (u_row,u_col) = get_unit_row_column(row,col)                                        # Get unit row and unit column (each between 0 and 2)
-            (rel_row, rel_col) = (row - 3*u_row, col - 3*u_col)                                 # Get the relative row and column of the cell within the unit (each between 0 and 2)
-
-            self.value[row][col] = val                                                          # Update Board.value
-            print "{}".format(Grid.range[8][1])
-            self.Rows[row].update(col, val)                                                     # Update Board.Rows
-            print "{}".format(Grid.range[8][1])
-            self.Cols[col].update(row, val)                                                     # Update Board.Cols
-            print "{}".format(Grid.range[8][1])
-            self.Units[u_row][u_col].update(rel_row, rel_col, val)                              # Update Board.Units
-            print "{}".format(Grid.range[8][1])
-            self.Cells[row][col].update(val)                                                    # Update Board.Cells
-            print "{}".format(Grid.range[8][1])
-            self.range_remove_last_possibility(row,col,val, k =12)
-            print "{}".format(Grid.range[8][1])
-            self.get_cell_ranges(i = 12)                                                           # Update the range attribute after each update]
-            print "{}".format(Grid.range[8][1])
+        (u_row,u_col) = get_unit_row_column(row,col)                                        # Get unit row and unit column (each between 0 and 2)
+        (rel_row, rel_col) = (row - 3*u_row, col - 3*u_col)                                 # Get the relative row and column of the cell within the unit (each between 0 and 2)
+        """ Update values first """
+        self.value[row][col] = val                                                          # Update Board.value
+        self.Rows[row].update(col, val)                                                     # Update Board.Rows
+        self.Cols[col].update(row, val)                                                     # Update Board.Cols
+        self.Units[u_row][u_col].update(rel_row, rel_col, val)                              # Update Board.Units
+        self.Cells[row][col].update(val)                                                    # Update Board.Cells
+        """ Now update ranges """
+        self.range_remove_last_possibility(row,col,val)
+        self.get_cell_ranges()
 
     def get_obj(self, row, col):                                                            # Used to get the Row, Col, Unit, Cell objects for a row and column
 
@@ -96,32 +76,19 @@ class Board:
         (u_row,u_col) = get_unit_row_column(row, col)
         return (self.Rows[row],self.Cols[col],self.Units[u_row][u_col],self.Cells[row][col])
 
-    def get_cell_ranges(self, i =0):                                                              # Called directly after updating a value on the Board
+    def get_cell_ranges(self):                                                              # Called directly after updating a value on the Board
 
         """ Function to return a list of sets of possible values for
         each cell in the grid """
 
         # Get Board.range by calling the get_range() method for each Cell object
         self.update_cell_range()
-        if i == 12:
-            print "Remove1: {}".format(self.range_remove)
-        #    for x in self.range:
-        #        print "Range1: {}".format(x)
-        #    print "\n"
         for row_col in self.range_remove.keys():
             self.range[row_col[0]][row_col[1]] = \
     self.range[row_col[0]][row_col[1]].difference(self.range_remove[row_col])
 
-        if i == 12:
-            for x in self.range:
-                print "Range2: {}".format(x)
-            print "\n"
         self.update_cell_range()
 
-        #if i == 12:
-        #    for x in self.range:
-        #        print "Range3: {}".format(x)
-        #    print "\n"
         return self.range
 
     def remove_from_range(self, rows, cols, val):                                           # Update the dictionary of tuples to sets, with the values to be removed from the range of cells
@@ -140,7 +107,7 @@ class Board:
         self.range = [[self.Cells[row][col].get_range() for \
                        col in range(0,9)] for row in range(0,9)]
 
-    def range_remove_last_possibility(self,row,col,val, k = 0):
+    def range_remove_last_possibility(self,row,col,val):
        rows =[]
        cols = []
        for i in range(0,9):
@@ -159,13 +126,8 @@ class Board:
                if (r,c) != (row,col):
                    rows.append(r)
                    cols.append(c)
-       if k == 12:
-           print "Remove111111: {}".format(self.range_remove)
-           print "rows: {}".format(rows)
-           print "cols: {}".format(cols)
        Grid.remove_from_range(rows,cols,val)
-       if k == 12:
-           print "Remove222222: {}".format(self.range_remove)
+
 
 
 #################################################################
