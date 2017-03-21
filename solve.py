@@ -17,6 +17,9 @@ def solve():
 
                 if Grid.value[row][col] == 0:                                                               # If this cell is empty
                     i+=1
+
+                    print "{}".format(i)
+                    #print "Range (8,8):{}".format(Grid.range[8][8])
                     old_range = Grid.range
                     x_wing(row,col,i)
                     if old_range != Grid.range:
@@ -25,11 +28,25 @@ def solve():
                         break
 
 
-
                     # If Unit has 1 remaining empty cell, fill it #
                     cell = Grid.get_obj(row, col)                                                           # Get the (Row, Col, Unit, Cell) objects for the (row, col)
+                    fill_col = fill_only_option_col(cell[3])
+                    
+                    if fill_col:
+                        Grid.update(row,col,fill_col)
+                        
+                        update = True
+                        
+                    fill_row = fill_only_option_row(cell[3])
+                    if fill_row:
+                        Grid.update(row,col,fill_row)
+                        update = True
+                        
                     last_filled = try_fill_last_blank(row, col, cell)
                     if last_filled:
+                        if (row,col) == (8,8):
+                            print "Flag 1"
+                            aa=1
                         update = True
                         break
 
@@ -42,7 +59,13 @@ def solve():
                     if len(options_for_only_this_cell) == 1:
                         num = options_for_only_this_cell.pop()                                                  # Convert set to integer
                         print "Update called b, cell {},{}, val: {}".format(row, col, num)
+                        if (row,col) == (8,8):
+                            print "Flag 21"
                         Grid.update(row, col, num)
+                        if (row,col) == (8,8):
+                            print "Flag 2"
+                            print "Range* (8,8):{}".format(Grid.range[8][8])
+                            aa=1
                         update = True
                         break
 
@@ -52,6 +75,9 @@ def solve():
                     if final_value:                                                                             # If final_value not None
                         print "Update called c, cell {},{}, val: {}".format(row, col, final_value)
                         Grid.update(row, col, final_value)                                                      # Update objects
+                        if (row,col) == (8,8):
+                            print "Flag 3"
+                            aa=1
                         update = True
                         break                                                                                   # If the cell has been updated, stop searching through possible values
                                                                                                                 # If the cell has been updated, stop searching through possible values
@@ -62,22 +88,59 @@ def solve():
                         print "x-wing update {},{}".format(row,col)
                         last_possibility = Grid.range[row][col].pop()
                         Grid.update(row, col, last_possibility)               # Set the cell value to the remaining value in the range
-
+                        if (row,col) == (8,8):
+                            print "Flag 4"
+                            aa=1
                 else:                                               # If the cell is populated, go to the next cell
                     pass
         if not update:                                              # If you have iterated through all rows and columns, without updating, quit and raise flag
-
-            print "Dead end reached. No more progress possible with basic algorithm"
-            Grid.value
-            break
+            loop_again = False
+            for unit_row in range(0,3):
+                
+                for unit_col in range(0,3):
+                    
+                    iii = (Grid.range[7][8],Grid.range[8][8])
+                    aaa = Grid.Units[unit_row][unit_col].get_range()
+                    bbb = Grid.Units[unit_row][unit_col].get_unit_range()
+                    ccc = Grid.Units[unit_row][unit_col].get_unit_range_subsets()
+                    ddd = Grid.Units[unit_row][unit_col].get_preemptive_cells()
+                    fff = (Grid.range[7][8],Grid.range[8][8])
+                    flag = Grid.Units[unit_row][unit_col].check_num_preemptive()
+                    
+                    if flag == True:
+                        loop_again = True
+            if not loop_again:
+                print "Dead end reached. No more progress possible with basic algorithm"
+                Grid.value
+                break
     if 0 not in Grid.full_list():
         return True
     else:
         return False
+        
+def fill_only_option_row(Cell):
+    
+    cell_range = Cell.range
+    row_range_wo = get_row_range_wo(Cell.row,Cell.col,0)
+    fill = None
+    for val in cell_range:
+        if val not in row_range_wo:
+            fill = val
+            break
+    return fill
 
+def fill_only_option_col(Cell):
 
-
-
+    cell_range = Cell.range
+    col_range_wo = get_col_range_wo(Cell.row,Cell.col,0)
+    
+    fill = None
+    for val in cell_range:
+        if val not in col_range_wo:
+            fill = val
+            break
+    return fill
+    
 
 def get_row_range_wo(row,col,col_step):
 
@@ -223,6 +286,9 @@ def try_fill_last_blank(row, col, cell):
     if num_zeroes_unit == 1:                                                            # If only one empty cell in this unit, just fill in the value
         (rel_row, rel_col) = cell[2].rel_find(0)
         #print "Update last element of a unit {},{} -> {}".format(base_row+rel_row, base_col+rel_col, 45 - sum([sum(x) for x in cell[2].value]))
+        if (rel_row + base_row, rel_col + base_col) == (8,8):
+            print "Flag 5"
+            aa=1
         Grid.update(rel_row + base_row, rel_col + base_col, \
                     45 - sum([sum(x) for x in cell[2].value]))                          # Value in num field is equal to the number missing from the unit
 
@@ -230,6 +296,9 @@ def try_fill_last_blank(row, col, cell):
     elif num_zeroes_col == 1:
         abs_row = cell[1].abs_find(0)
         #print "Update last in col, cell {},{} -> {}".format(abs_row, col, 45 - sum(cell[1].value))
+        if (abs_row,col) == (8,8):
+            print "Flag 6"
+            aa=1
         Grid.update(abs_row, col, \
                     45 - sum(cell[1].value))                          # Value in num field is equal to the number missing from the unit
 
@@ -237,6 +306,9 @@ def try_fill_last_blank(row, col, cell):
     elif num_zeroes_row == 1:
         abs_col = cell[0].abs_find(0)
         #print "Update last in row, cell {},{} -> {}".format(row, abs_col, 45 - sum(cell[0].value))
+        if (row,abs_col) == (8,8):
+            print "Flag 7"
+            aa=1
         Grid.update(row, abs_col, \
                     45 - sum(cell[0].value))                          # Value in num field is equal to the number missing from the unit
 

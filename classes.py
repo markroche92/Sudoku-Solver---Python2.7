@@ -1,4 +1,5 @@
 from functions import remaining, get_unit_row_column
+from itertools import combinations, chain
 
 import csv
 # Load the initial grid from a text file
@@ -108,25 +109,33 @@ class Board:
                        col in range(0,9)] for row in range(0,9)]
 
     def range_remove_last_possibility(self,row,col,val):
-       rows =[]
-       cols = []
-       for i in range(0,9):
-           if i != row:
-             rows.append(i)
-             cols.append(col)
-       for j in range(0,9):
-           if j != col:
-             rows.append(row)
-             cols.append(j)
-       base_row = row - row % 3
-       base_col = col - col % 3
+        if row == 4 and col ==8 and val == 7:
+            pass
+        
+        rows =[]
+        cols = []
+        for i in range(0,9):
+            if i != row:
+               rows.append(i)
+               cols.append(col)
+        for j in range(0,9):
+            if j != col:
+                rows.append(row)
+                cols.append(j)
+        base_row = row - row % 3
+        base_col = col - col % 3
+        
 
-       for r in range(base_row,base_row + 3):
-           for c in range(base_col, base_col + 3):
-               if (r,c) != (row,col):
-                   rows.append(r)
-                   cols.append(c)
-       Grid.remove_from_range(rows,cols,val)
+        for value in Grid.range[row][col]:
+            Grid.remove_from_range([row],[col],value)
+        
+    
+        for r in range(base_row,base_row + 3):
+            for c in range(base_col, base_col + 3):
+                if (r,c) != (row,col):
+                    rows.append(r)
+                    cols.append(c)
+                    Grid.remove_from_range(rows,cols,val)
 
 
 
@@ -137,15 +146,28 @@ class Unit:
     def __init__(self, i, j, grid = grid):                                                  # i is the row of the unit (1,2 or 3), j if the column of the unit (1,2 or 3)
 
         # Start and end rows, columns of the unit
-        row_start = 3*i
-        col_start = 3*j
-        row_end = 3*i + 2
-        col_end = 3*j + 3
+        self.unit_row = i
+        self.unit_col = j
+        self.row_start = 3*i
+        self.col_start = 3*j
+        self.row_end = 3*i + 2
+        self.col_end = 3*j + 3
 
         # Extract the unit data as a list of lists
-        self.value = [grid[row_start][col_start:col_end], \
-                       grid[row_start+1][col_start:col_end], \
-                       grid[row_end][col_start:col_end]]
+        self.value = [grid[self.row_start][self.col_start:self.col_end], \
+                       grid[self.row_start+1][self.col_start:self.col_end], \
+                       grid[self.row_end][self.col_start:self.col_end]]
+        self.range =[]
+        self.unit_range = set()
+        self.range_subsets =[]
+        self.preemptive_dict = {}
+
+    def __str__(self):
+        
+        """ Return the name of the object
+        when called as a string """
+        
+        return "Unit {},{}".format(self.unit_row,self.unit_col)
 
     def update(self, row, col, val):
 
@@ -214,6 +236,73 @@ class Unit:
                     col_star = j
         return (row_star, col_star)
 
+    def get_range(self):
+        
+        """ Returns a list of 3 lists, containing
+        the range of each cell in the unit """
+        
+        self.range = [[col for col in row[self.col_start:self.col_end]] for row in Grid.range[self.row_start:self.row_end+1]]
+        return self.range
+        
+    def get_unit_range(self):
+        
+        """ Returns the set of all remaining values
+        to be filled in, in this unit """
+        
+        range_list = [item for sublist in self.range for item in sublist] # Convert list of lists to list
+        self.unit_range = set().union(*range_list)
+        return self.unit_range
+        
+    def get_unit_range_subsets(self):
+        
+        """ Returns the list of all subsets (as tuples) of 2 or
+        more elements for the superset of unit_range """
+        
+        list_of_tuples = list(chain(*[combinations(list(self.unit_range), length) for length in range(2,10)]))
+        #self.range_subsets = [set(elements) for elements in list_of_tuples]
+        self.range_subsets = list_of_tuples
+        return self.range_subsets
+        
+    def get_preemptive_cells(self):
+        
+        """ Return the dictionary of range subset tuples : Cells
+        which contain the entire subset within its range """
+        
+        for row in range(self.row_start, self.row_end+1):
+            for col in range(self.col_start, self.col_end):
+                for subset in self.range_subsets:
+                    if Grid.Cells[row][col].range <=set(subset) and len(Grid.Cells[row][col].range)>1:
+                        #print "subset: {}, range: {}".format(subset, Grid.Cells[row][col].range)
+                        if subset in self.preemptive_dict.keys():
+                            self.preemptive_dict[subset].add(Grid.Cells[row][col])
+                        else:
+                            self.preemptive_dict[subset] = set([Grid.Cells[row][col]])
+        return self.preemptive_dict
+        
+    def check_num_preemptive(self):
+        range_update = False
+        for key in self.preemptive_dict:
+            if len(key) == len(self.preemptive_dict[key]):
+                cells_in_unit = []
+                for row in range(self.row_start, self.row_end+1):
+                    for col in range(self.col_start, self.col_end):
+                        cells_in_unit.append(Grid.Cells[row][col])
+                                  
+                for cell in cells_in_unit:
+                    if cell not in self.preemptive_dict[key]:
+                        rows =[]
+                        cols =[]
+                        for val in key:
+                            if cell.value == 0:
+                                rows.append(cell.row)
+                                cols.append(cell.col)
+                                Grid.remove_from_range(rows,cols,val)
+                                print "Remove rows: {}".format(rows)
+                                print "Remove cols: {}".format(cols)
+                                print "Remove val: {}".format(val)
+                                Grid.get_cell_ranges()
+                                range_update = True
+        return range_update
 
 
 
@@ -223,6 +312,14 @@ class Row:
 
     def __init__(self, row, grid = grid):
         self.value = grid[row]                       # Simply extract the row from the grid. This is a single list
+        self.row = row
+        
+    def __str__(self):
+        
+        """ Return the name of the object
+        when called as a string """
+        
+        return "Row {}".format(self.row)
 
     def update(self, col, val):
 
@@ -284,6 +381,13 @@ class Col:
             self.value.append(grid[row][col])        # Column is a list
         self.Cells = [0,0,0,0,0,0,0,0]
 
+    def __str__(self):
+        
+        """ Return the name of the object
+        when called as a string """
+        
+        return "Column {}".format(self.col)
+
     def get_cells(self):
         self.Cells = [Grid.Cells[x][self.col] for x in range(0,9)]
 
@@ -343,6 +447,12 @@ class Cell:
         self.row = row                              # Each cell remembers which row it is in
         self.col = col                              # Each cell remembers which column it is in
 
+    def __str__(self):
+        
+        """ Return the name of the object
+        when called as a string """
+        
+        return "Cell {},{}".format(self.row,self.col)
 
     def filled(self):
 
@@ -405,6 +515,11 @@ class Cell:
 #################################################################
 
 Grid = Board()
+#Grid.Units[2][2].get_range()
+#for row in Grid.Units[2][2].range:
+#    print "{}".format(row)
+
+
 for col in range(0,9):
     Grid.Cols[col].get_cells()
 Grid.get_cell_ranges()
