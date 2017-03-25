@@ -1,27 +1,11 @@
 #################################################################
 #################################################################
 
-def get_all_remaining(empty_cells):
-    
-    """ Returns a set of possible values for the 
-    list of empty cells """
-    
-    possible_values = set()
-    
-    for cell in empty_cells:
-        possible_values = possible_values.union(cell.get_range())       # Union of all of the sets of possible values for these cells
-    
-    return possible_values
-
-#################################################################
-#################################################################
-
-
 def remaining(Row, Col, Unit, Cell):
-    
+
     """ Get the set of remaining possible values
     for a cell """
-    if Cell.value == 0:   
+    if Cell.value == 0:
         all_vals = set(range(1,10))
         row_vals = set(Row.value)
         col_vals = set(Col.value)
@@ -29,15 +13,15 @@ def remaining(Row, Col, Unit, Cell):
         return all_vals.difference(row_vals | col_vals | unit_vals)     # | denotes union
     else:
         return set()
-    
+
 #################################################################
 #################################################################
-        
+
 def get_unit_row_column(act_row, act_col):                          # Necessary - called by get_obj()
-    
+
     """ Function returns the unit row and unit column
     for an input row number and column number """
-    
+
     if act_row >= 0 and act_row <=2:
         unit_row = 0
     elif act_row >=3 and act_row <=5:
@@ -46,7 +30,7 @@ def get_unit_row_column(act_row, act_col):                          # Necessary 
         unit_row = 2
     else:
         unit_row = None
-        
+
     if act_col >= 0 and act_col <=2:
         unit_col = 0
     elif act_col >=3 and act_col <=5:
@@ -55,33 +39,32 @@ def get_unit_row_column(act_row, act_col):                          # Necessary 
         unit_col= 2
     else:
         unit_col = None
-        
+
     return (unit_row, unit_col)
-    
+
 #################################################################
 #################################################################
 
 def get_base(row, col):
-    
+
     """ Return the base row and column
     of the unit for a given cell """
-    
+
     if row >= 6:                                                    # For row number, get the base row number (i.e. where the unit starts)
         base_row = 6
     elif row >= 3:
         base_row = 3
     else:
         base_row = 0
-        
+
     if col >= 6:                                                    # For column number, get the base column number (i.e. where the unit starts)
         base_col = 6
     elif col >= 3:
         base_col = 3
     else:
         base_col = 0
-    
+
     return (base_row, base_col)                                     # Return base (row, column) tuple
-        
+
 #################################################################
 #################################################################
-        

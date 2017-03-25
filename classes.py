@@ -1,21 +1,184 @@
 from functions import remaining, get_unit_row_column
 from itertools import combinations, chain
-
 import csv
+
 # Load the initial grid from a text file
 
 with open('incomplete.txt') as f:                                                           # Open the incomplete sudoku puzzle
     reader = csv.reader(f, delimiter = ' ')                                                 # Read file
     grid = [list(map(int,num)) for num in reader]                                           # Import data as a list of lists of integers
 
-
+#################################################################
+###### Parent class for Unit, Col, Row. Reusable methods. #######
 #################################################################
 
-# Define classes which represent each aspect of the sudoku grid #
+class CommonAttributesMethods:
 
+    """ This class initialises common attributes, and defines
+    common methods for Unit, Row and Col objects """
+
+    def __init__(self):
+
+        """ Initialise common attributes for Rows,
+        Columns and Units """
+
+        self.combined_range = set()
+        self.range_subsets = []
+        self.preemptive_dict = {}
+
+    def get_num_blanks(self):
+
+        """ Get the number of blank cells
+        within the unit/row/column """
+
+        count = 0
+        for x in self.value:
+            if 'Unit' in self.__str__():
+                for element in x:
+                    if element == 0:
+                        count += 1
+            else:
+                if x== 0:
+                    count += 1
+        return count
+
+    def get_combined_range(self):
+
+        if 'Unit' in self.__str__():
+
+            """ Returns the set of all remaining values
+            to be filled in, in this unit """
+
+            range_list = [item for sublist in self.range for item in sublist] # Convert list of lists to list
+            self.combined_range = set().union(*range_list)
+            return self.combined_range
+        else:
+
+            """ Returns the set of all remaining values
+            to be filled in, in this col/row """
+
+            self.combined_range = set().union(*self.range)
+            return self.combined_range
+
+    def get_combined_range_subsets(self):
+
+        """ Returns the list of all subsets (as tuples) of 2 or
+        more elements for the superset of combined_range """
+
+        list_of_tuples = list(chain(*[combinations(list(self.combined_range), length) for length in range(2,10)]))
+        #self.range_subsets = [set(elements) for elements in list_of_tuples]
+        self.range_subsets = list_of_tuples
+        return self.range_subsets
+
+    def get_preemptive_cells(self):
+
+        """ Return the dictionary of range subset tuples : Cells
+        which contain the entire subset within its range """
+
+        def conditional(self,row,col):
+
+            """ Nested Function:
+            Iterate through the range subsets, and create the
+            preemptive dictionary. Nested function because the
+            external code allows this to be called for Row, Col
+            and Unit objects"""
+
+            for subset in self.range_subsets:
+                if Grid.Cells[row][col].range <=set(subset) and len(Grid.Cells[row][col].range)>1:
+                    #print "subset: {}, range: {}".format(subset, Grid.Cells[row][col].range)
+                    if subset in self.preemptive_dict.keys():
+                        self.preemptive_dict[subset].add(Grid.Cells[row][col])
+                    else:
+                        self.preemptive_dict[subset] = set([Grid.Cells[row][col]])
+
+
+        if 'Unit' in self.__str__():
+            for row in range(self.row_start, self.row_end+1):
+                for col in range(self.col_start, self.col_end):
+                    conditional(self,row,col)
+            return self.preemptive_dict
+
+        elif 'Row' in self.__str__():
+            for col in range(0,9):
+                conditional(self,self.row,col)
+            return self.preemptive_dict
+
+        elif 'Col' in self.__str__():
+            for row in range(0,9):
+                conditional(self,row,self.col)
+            return self.preemptive_dict
+
+        else:
+
+            return None
+
+    def check_num_preemptive(self):
+
+        """ Function returns true if there has been a range
+        update within the Row/Col/Unit, after applying
+        preemptive cell logic """
+
+        def get_cells(self):
+
+            """ Nested Function:
+            Get the list of cells in the Unit/Row/Col
+            as, depending on the object in question """
+
+            cells = []
+            if 'Unit' in self.__str__():
+                print "Get Unit Cells"
+                for row in range(self.row_start, self.row_end+1):
+                    for col in range(self.col_start, self.col_end):
+                        cells.append(Grid.Cells[row][col])
+
+            elif 'Row' in self.__str__():
+                print "Get Row Cells"
+                for col in range(0,9):
+                    cells.append(Grid.Cells[self.row][col])
+
+            elif 'Col' in self.__str__():
+                print "Get Col Cells"
+                for row in range(0,9):
+                    cells.append(Grid.Cells[row][self.col])
+            return cells
+
+        range_update = False
+        for key in self.preemptive_dict:
+            if len(key) == len(self.preemptive_dict[key]):
+
+                cells = get_cells(self)
+
+                for cell in cells:
+                    if cell not in self.preemptive_dict[key]:
+                        rows =[]
+                        cols =[]
+                        for val in key:
+                            if cell.value == 0:
+                                range_old = Grid.range
+                                rows.append(cell.row)
+                                cols.append(cell.col)
+                                Grid.remove_from_range(rows,cols,val)
+                                print "Remove rows: {}".format(rows)
+                                print "Remove cols: {}".format(cols)
+                                print "Remove val: {}".format(val)
+                                Grid.get_cell_ranges()
+                                if Grid.range != range_old:
+                                    range_update = True
+                                    for x in range_old:
+                                        print "{}".format(x)
+                                    print "\n"
+                                    for y in Grid.range:
+                                        print "{}".format(y)
+        return range_update
+
+#################################################################
+# Define classes which represent each aspect of the sudoku grid #
 #################################################################
 
 class Board:
+
+    """ This class defines attributes of the sudoku board,
+    and methods for updating and acquiring board info """
 
     def __init__(self, grid = grid):
         # Initialise the dictionary of (row,col) locations to values to be
@@ -38,8 +201,6 @@ class Board:
                 obj = self.get_obj(row,col)
                 self.Cells[row][col].range = remaining(obj[0], obj[1], obj[2], obj[3])      # Initialise the range of each Cell object by checking it's row, column and unit
                 self.range[row][col] = self.Cells[row][col].range                           # The range of each cell is not only accessible through the Cell object, but through Board.range
-
-
 
     def full_list(self):                                                                    # Continue to try to solve the puzzle while there is a 0 in full_list
 
@@ -86,7 +247,7 @@ class Board:
         self.update_cell_range()
         for row_col in self.range_remove.keys():
             self.range[row_col[0]][row_col[1]] = \
-    self.range[row_col[0]][row_col[1]].difference(self.range_remove[row_col])
+            self.range[row_col[0]][row_col[1]].difference(self.range_remove[row_col])
 
         self.update_cell_range()
 
@@ -111,7 +272,7 @@ class Board:
     def range_remove_last_possibility(self,row,col,val):
         if row == 4 and col ==8 and val == 7:
             pass
-        
+
         rows =[]
         cols = []
         for i in range(0,9):
@@ -124,12 +285,12 @@ class Board:
                 cols.append(j)
         base_row = row - row % 3
         base_col = col - col % 3
-        
+
 
         for value in Grid.range[row][col]:
             Grid.remove_from_range([row],[col],value)
-        
-    
+
+
         for r in range(base_row,base_row + 3):
             for c in range(base_col, base_col + 3):
                 if (r,c) != (row,col):
@@ -137,11 +298,13 @@ class Board:
                     cols.append(c)
                     Grid.remove_from_range(rows,cols,val)
 
-
-
+#################################################################
 #################################################################
 
-class Unit:
+class Unit(CommonAttributesMethods):
+
+    """ This class defines attributes of a unit on the board,
+    and methods for updating and acquiring unit info """
 
     def __init__(self, i, j, grid = grid):                                                  # i is the row of the unit (1,2 or 3), j if the column of the unit (1,2 or 3)
 
@@ -158,15 +321,13 @@ class Unit:
                        grid[self.row_start+1][self.col_start:self.col_end], \
                        grid[self.row_end][self.col_start:self.col_end]]
         self.range =[]
-        self.unit_range = set()
-        self.range_subsets =[]
-        self.preemptive_dict = {}
+        CommonAttributesMethods.__init__(self)
 
     def __str__(self):
-        
+
         """ Return the name of the object
         when called as a string """
-        
+
         return "Unit {},{}".format(self.unit_row,self.unit_col)
 
     def update(self, row, col, val):
@@ -175,28 +336,6 @@ class Unit:
         to a certain value """
 
         self.value[row][col] = val
-
-    def total(self):
-
-        """ Calculate the sum of values
-        in the unit of the grid """
-
-        total = 0
-        for row in self.value:
-            total+=sum(row)
-        return total
-
-    def check(self, val):
-
-        """ Check if a certain value is
-        present in the unit """
-
-        flag = False
-        for row in self.value:
-            if val in row:
-                flag = True
-                break
-        return flag
 
     def full_list(self):
 
@@ -208,17 +347,6 @@ class Unit:
             for num in row:
                 full_list.add(num)
         return full_list
-
-    def get_num_blanks(self):
-
-        """ Get the number of blank cells
-        within the unit """
-        count = 0
-        for row in self.value:
-            for element in row:
-                if element == 0:
-                    count += 1
-        return count
 
     def rel_find(self, val):
 
@@ -237,88 +365,32 @@ class Unit:
         return (row_star, col_star)
 
     def get_range(self):
-        
+
         """ Returns a list of 3 lists, containing
         the range of each cell in the unit """
-        
+
         self.range = [[col for col in row[self.col_start:self.col_end]] for row in Grid.range[self.row_start:self.row_end+1]]
         return self.range
-        
-    def get_unit_range(self):
-        
-        """ Returns the set of all remaining values
-        to be filled in, in this unit """
-        
-        range_list = [item for sublist in self.range for item in sublist] # Convert list of lists to list
-        self.unit_range = set().union(*range_list)
-        return self.unit_range
-        
-    def get_unit_range_subsets(self):
-        
-        """ Returns the list of all subsets (as tuples) of 2 or
-        more elements for the superset of unit_range """
-        
-        list_of_tuples = list(chain(*[combinations(list(self.unit_range), length) for length in range(2,10)]))
-        #self.range_subsets = [set(elements) for elements in list_of_tuples]
-        self.range_subsets = list_of_tuples
-        return self.range_subsets
-        
-    def get_preemptive_cells(self):
-        
-        """ Return the dictionary of range subset tuples : Cells
-        which contain the entire subset within its range """
-        
-        for row in range(self.row_start, self.row_end+1):
-            for col in range(self.col_start, self.col_end):
-                for subset in self.range_subsets:
-                    if Grid.Cells[row][col].range <=set(subset) and len(Grid.Cells[row][col].range)>1:
-                        #print "subset: {}, range: {}".format(subset, Grid.Cells[row][col].range)
-                        if subset in self.preemptive_dict.keys():
-                            self.preemptive_dict[subset].add(Grid.Cells[row][col])
-                        else:
-                            self.preemptive_dict[subset] = set([Grid.Cells[row][col]])
-        return self.preemptive_dict
-        
-    def check_num_preemptive(self):
-        range_update = False
-        for key in self.preemptive_dict:
-            if len(key) == len(self.preemptive_dict[key]):
-                cells_in_unit = []
-                for row in range(self.row_start, self.row_end+1):
-                    for col in range(self.col_start, self.col_end):
-                        cells_in_unit.append(Grid.Cells[row][col])
-                                  
-                for cell in cells_in_unit:
-                    if cell not in self.preemptive_dict[key]:
-                        rows =[]
-                        cols =[]
-                        for val in key:
-                            if cell.value == 0:
-                                rows.append(cell.row)
-                                cols.append(cell.col)
-                                Grid.remove_from_range(rows,cols,val)
-                                print "Remove rows: {}".format(rows)
-                                print "Remove cols: {}".format(cols)
-                                print "Remove val: {}".format(val)
-                                Grid.get_cell_ranges()
-                                range_update = True
-        return range_update
-
-
 
 #################################################################
+#################################################################
 
-class Row:
+class Row(CommonAttributesMethods):
+
+    """ This class defines attributes of a row on the board,
+    and methods for updating and acquiring row info """
 
     def __init__(self, row, grid = grid):
         self.value = grid[row]                       # Simply extract the row from the grid. This is a single list
         self.row = row
-        
+        self.range = []
+        CommonAttributesMethods.__init__(self)
+
     def __str__(self):
-        
+
         """ Return the name of the object
         when called as a string """
-        
+
         return "Row {}".format(self.row)
 
     def update(self, col, val):
@@ -327,34 +399,6 @@ class Row:
         to a certain value """
 
         self.value[col] = val                        # Update the element with the value "val"
-
-    def total(self):
-
-        """ Calculate the sum of values
-        in the row of the grid """
-
-        return sum(self.value)
-
-    def check(self, val):
-
-        """ Check if a certain value is
-        present in the row """
-
-        if val in self.value:
-            return True
-        else:
-            return False
-
-    def get_num_blanks(self):
-
-        """ Get the number of blank cells
-        within the row """
-
-        count = 0
-        for element in self.value:
-            if element == 0:
-                count += 1
-        return count
 
     def abs_find(self, val):
 
@@ -369,10 +413,21 @@ class Row:
                 break
         return i_star
 
+    def get_range(self):
+
+        """ Returns a list of sets containing the
+        range for each cell in the row """
+
+        self.range = [col for col in Grid.range[self.row][:]]
+        return self.range
 
 #################################################################
+#################################################################
 
-class Col:
+class Col(CommonAttributesMethods):
+
+    """ This class defines attributes of a column on the board,
+    and methods for updating and acquiring column info """
 
     def __init__(self, col, grid = grid):
         self.value = []
@@ -380,12 +435,15 @@ class Col:
         for row in range(0,9):
             self.value.append(grid[row][col])        # Column is a list
         self.Cells = [0,0,0,0,0,0,0,0]
+        self.range = []
+
+        CommonAttributesMethods.__init__(self)
 
     def __str__(self):
-        
+
         """ Return the name of the object
         when called as a string """
-        
+
         return "Column {}".format(self.col)
 
     def get_cells(self):
@@ -397,34 +455,6 @@ class Col:
         to a certain value """
 
         self.value[row] =val                         # Update the element with the value "val"
-
-    def total(self):
-
-        """ Calculate the sum of values
-        in the column of the grid """
-
-        return sum(self.value)
-
-    def check(self, val):
-
-        """ Check if a certain value is
-        present in the column """
-
-        if val in self.value:
-            return True
-        else:
-            return False
-
-    def get_num_blanks(self):
-
-        """ Get the number of blank cells
-        within the column """
-
-        count = 0
-        for element in self.value:
-            if element == 0:
-                count += 1
-        return count
 
     def abs_find(self, val):
 
@@ -438,9 +468,21 @@ class Col:
                 break
         return i_star
 
+    def get_range(self):
+
+        """ Returns a list of sets containing the
+        range for each cell in the col """
+
+        self.range = [row[self.col] for row in Grid.range]
+        return self.range
+
+#################################################################
 #################################################################
 
 class Cell:
+
+    """ This class defines attributes of a cell on the board,
+    and methods for updating and acquiring cell info """
 
     def __init__(self, row, col, grid = grid):
         self.value = grid[row][col]
@@ -448,21 +490,11 @@ class Cell:
         self.col = col                              # Each cell remembers which column it is in
 
     def __str__(self):
-        
+
         """ Return the name of the object
         when called as a string """
-        
+
         return "Cell {},{}".format(self.row,self.col)
-
-    def filled(self):
-
-        """ Function to flag if the cell has been
-        filled (i.e. contains a non-zero value) """
-
-        if self.value != 0:
-            return True
-        else:
-            return False
 
     def update(self, val):
 
@@ -480,45 +512,10 @@ class Cell:
         self.range = Grid.range[self.row][self.col]
         return self.range                       # Return the set of possible values which could go in the cell
 
-
-    def get_empty_cells(self):
-
-        """ Get the list of cells which are empty,
-        within the column and row of the considered cell """
-
-        (Row, Col, Unit) = Grid.get_obj(self.row, self.col)[0:3]        # Get (Row, Col, Unit) objects for the row and column number
-        empty_cells = []                                                # Initialise empty cell list
-        for j, c in enumerate(Row.value):
-            if j == self.col:                                           # Skip the input cell
-                pass
-            elif c == 0:
-                empty_cells.append(Grid.get_obj(self.row,j)[3])
-            else:
-                pass
-        for i, r in enumerate(Col.value):
-            if i == self.row:                                           # Skip the input cell
-                pass
-            elif r == 0:
-                empty_cells.append(Grid.get_obj(i,self.col)[3])
-            else:
-                pass
-        return empty_cells                                              # Return the list of Cell objects
-
-
 #################################################################
-#################################################################
-
-#################################################################
-
-# Create the Grid object based on defined classes #
-
 #################################################################
 
 Grid = Board()
-#Grid.Units[2][2].get_range()
-#for row in Grid.Units[2][2].range:
-#    print "{}".format(row)
-
 
 for col in range(0,9):
     Grid.Cols[col].get_cells()
