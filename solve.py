@@ -1,7 +1,17 @@
 from functions import remaining, get_base
 from get_ranges import get_row_range_wo, get_col_range_wo
+from classes import Board
+#################################################################
+#################################################################
 
-from classes import Grid                                                                                        # Import Grid object
+Grid = Board()
+
+for col in range(0,9):
+    Grid.Cols[col].get_cells()
+Grid.get_cell_ranges()
+
+Grid_List = [Grid]                                                                   # Initialise Grid_List. This will act as a list of Board objects.
+
 
 #################################################################
 #################################################################
@@ -11,15 +21,16 @@ def solve():
     """ Run a loop to fill in cell values
     which cannot be entered in neighbours"""
     i=0
-    while 0 in Grid.full_list():                                                                                # While there are still empty grid cells
+
+    while 0 in Grid_List[-1].full_list():                                                                       # While there are still empty grid cells
         update = False                                                                                          # Initialise update to False
         for row in range(0,9):                                                                                  # Search each row (0 -> 8), zero based
             for col in range(0,9):                                                                              # Search each column in each row (0 -> 8), zero based
 
-                if Grid.value[row][col] == 0:                                                                   # If this cell is empty
+                if Grid_List[-1].value[row][col] == 0:                                                          # If this cell is empty
                     i+=1
                     print "{}".format(i)
-                    cell = Grid.get_obj(row, col)                                                               # Get the (Row, Col, Unit, Cell) objects for the (row, col)
+                    cell = Grid_List[-1].get_obj(row, col)                                                      # Get the (Row, Col, Unit, Cell) objects for the (row, col)
 
                     if try_fill_last_blank(cell):
 
@@ -31,7 +42,7 @@ def solve():
                         update = True
                         break
 
-                    fill = check_if_only_in_range_this_cell(cell)                                # Considers values which can go in empty cells in the same unit. If a value can only go in this cell, return the value
+                    fill = check_if_only_in_range_this_cell(cell)                                               # Considers values which can go in empty cells in the same unit. If a value can only go in this cell, return the value
                     if fill:                                                                                    # If fill not None
 
                         """ Solver Algorithm #2:
@@ -39,14 +50,14 @@ def solve():
                         which is not in the range of another cell in the row, col, or unit.
                         If so, update the cell with this value """
 
-                        Grid.update(row, col, fill)                                                             # Update objects
+                        Grid_List[-1].update(row, col, fill)                                                    # Update objects
                         update = True
                         break
 
 
-                    old_range = Grid.range
-                    x_wing(row,col)
-                    if old_range != Grid.range:
+                    old_range = Grid_List[-1].range
+                    x_wing(cell[3])
+                    if old_range != Grid_List[-1].range:
 
                         """ Solver Algorithm #3:
                         Run x-wing for rows and x-wing for columns, using the current cell as
@@ -57,7 +68,7 @@ def solve():
                         break
 
 
-                    if len(Grid.range[row][col]) == 1:                                                          # If there is only 1 element in cell range (after x-wing)
+                    if len(Grid_List[-1].range[row][col]) == 1:                                                 # If there is only 1 element in cell range (after x-wing)
 
                         """ Solver Algorithm #4:
                         If there is only 1 value remaining in the range of a cell,
@@ -81,9 +92,9 @@ def solve():
 
             if not loop_again:
                 print "Dead end reached. No more progress possible with basic algorithm"
-                Grid.value
+                Grid_List[-1].value
                 break
-    if 0 not in Grid.full_list():
+    if 0 not in Grid_List[-1].full_list():
         return True
     else:
         return False
@@ -109,21 +120,21 @@ def try_fill_last_blank(cell):
     if num_zeroes_unit == 1:                                                            # If only one empty cell in this unit, just fill in the value
         (rel_row, rel_col) = cell[2].rel_find(0)
         #print "Update last element of a unit {},{} -> {}".format(base_row+rel_row, base_col+rel_col, 45 - sum([sum(x) for x in cell[2].value]))
-        Grid.update(rel_row + base_row, rel_col + base_col, \
+        Grid_List[-1].update(rel_row + base_row, rel_col + base_col, \
                     45 - sum([sum(x) for x in cell[2].value]))                          # Value in num field is equal to the number missing from the unit
 
         return True
     elif num_zeroes_col == 1:
         abs_row = cell[1].abs_find(0)
         #print "Update last in col, cell {},{} -> {}".format(abs_row, col, 45 - sum(cell[1].value))
-        Grid.update(abs_row, col, \
+        Grid_List[-1].update(abs_row, col, \
                     45 - sum(cell[1].value))                          # Value in num field is equal to the number missing from the unit
 
         return True
     elif num_zeroes_row == 1:
         abs_col = cell[0].abs_find(0)
         #print "Update last in row, cell {},{} -> {}".format(row, abs_col, 45 - sum(cell[0].value))
-        Grid.update(row, abs_col, \
+        Grid_List[-1].update(row, abs_col, \
                     45 - sum(cell[0].value))                          # Value in num field is equal to the number missing from the unit
 
         return True
@@ -146,7 +157,7 @@ def check_if_only_in_range_this_cell(cell):
         cell in the same row """
 
         cell_range = Cell.range
-        row_range_wo = get_row_range_wo(Cell.row,Cell.col)
+        row_range_wo = get_row_range_wo(Cell, Cell.row, Cell.col)
         fill = None
         for val in cell_range:
             if val not in row_range_wo:
@@ -162,7 +173,7 @@ def check_if_only_in_range_this_cell(cell):
         cell in the same column """
 
         cell_range = Cell.range
-        col_range_wo = get_col_range_wo(Cell.row,Cell.col)
+        col_range_wo = get_col_range_wo(Cell, Cell.row,Cell.col)
 
         fill = None
         for val in cell_range:
@@ -216,24 +227,27 @@ def check_if_only_in_range_this_cell(cell):
             fill = fill_only_option_unit(Unit, Cell)
     return fill
 
-def x_wing(row,col):
+def x_wing(Cell):
 
     """ Solver Algorithm #3:
     Run row-based x-wing algorithm and col-based x-wing algorithm
     for the input cell, and for a row gap and col gap ranging from 1 to
     the limit of the bottom and right hand side of the sudoku grid """                                                                                      # The input cell is the cell at the top left of the x-wing
 
-    def x_wing_row(row,col,row_step,col_step,val):
+    def x_wing_row(Cell,row_step,col_step,val):
 
             """ Nested function #1:
             X-Wing for rows """
 
-            this_row_range_set = get_row_range_wo(row,col,col_step)
-            parallel_row_range_set = get_row_range_wo(row + row_step,col, col_step)
+            row = Cell.row
+            col = Cell.col
 
-            if (val in Grid.range[row][col + col_step]) and \
-               (val not in this_row_range_set) and (val in Grid.range[row + row_step][col]) and \
-               (val in Grid.range[row + row_step][col + col_step]) and (val not in parallel_row_range_set):
+            this_row_range_set = get_row_range_wo(Cell, row,col,col_step)
+            parallel_row_range_set = get_row_range_wo(Cell, row + row_step,col, col_step)
+
+            if (val in Grid_List[-1].range[row][col + col_step]) and \
+               (val not in this_row_range_set) and (val in Grid_List[-1].range[row + row_step][col]) and \
+               (val in Grid_List[-1].range[row + row_step][col + col_step]) and (val not in parallel_row_range_set):
 
                 """ If value is in the range of the cell 2 columns over AND
                 the value is NOT in the range of any cell in this row, excluding thsi cell and that 2 columns over AND
@@ -251,20 +265,23 @@ def x_wing(row,col):
                 for y in row_list:
                     rows.append(y)
                     cols.append(col+col_step)
-                Grid.remove_from_range(rows,cols,val)
-                Grid.get_cell_ranges()
+                Grid_List[-1].remove_from_range(rows,cols,val)
+                Grid_List[-1].get_cell_ranges()
 
-    def x_wing_col(row,col,row_step,col_step,val):
+    def x_wing_col(Cell,row_step,col_step,val):
 
             """ Nested function #1:
             X-Wing for cols """
 
-            this_col_range_set = get_col_range_wo(row,col, row_step)
-            parallel_col_range_set = get_col_range_wo(row,col + col_step, row_step)
+            row = Cell.row
+            col = Cell.col
 
-            if (val in Grid.range[row + row_step][col]) and \
-               (val not in this_col_range_set) and (val in Grid.range[row][col + col_step]) and \
-               (val in Grid.range[row + row_step][col + col_step]) and (val not in parallel_col_range_set):
+            this_col_range_set = get_col_range_wo(Cell, row, col, row_step)
+            parallel_col_range_set = get_col_range_wo(Cell, row, col + col_step, row_step)
+
+            if (val in Grid_List[-1].range[row + row_step][col]) and \
+               (val not in this_col_range_set) and (val in Grid_List[-1].range[row][col + col_step]) and \
+               (val in Grid_List[-1].range[row + row_step][col + col_step]) and (val not in parallel_col_range_set):
 
                 """ If value is in the range of the cell 2 rows over AND
                 the value is NOT in the range of any cell in this col, excluding this cell and that 2 rows over AND
@@ -283,17 +300,20 @@ def x_wing(row,col):
                 for z in col_list:
                     rows.append(row + row_step)
                     cols.append(z)
-                Grid.remove_from_range(rows,cols,val)
-                Grid.get_cell_ranges()
+                Grid_List[-1].remove_from_range(rows,cols,val)
+                Grid_List[-1].get_cell_ranges()
+
+    row = Cell.row
+    col = Cell.col
 
     for row_step in range(1,9-row):                                                                         # row_step is the row width of the x-wing. It will not exceed grid bottom
         for col_step in range(1,9-col):                                                                     # col_step is the col width of the x-wing. It will not exceed grid width
             #print "row: {}, col: {}, row_step: {}, col_step: {}".format(row,col,row_step,col_step)
             if row + row_step <= 8 and col + col_step <=8 and \
-               (Grid.value[row][col] == 0 and \
-                Grid.value[row + row_step][col] == 0 and \
-                Grid.value[row][col + col_step] == 0 and \
-                Grid.value[row + row_step][col + col_step] == 0):
+               (Grid_List[-1].value[row][col] == 0 and \
+                Grid_List[-1].value[row + row_step][col] == 0 and \
+                Grid_List[-1].value[row][col + col_step] == 0 and \
+                Grid_List[-1].value[row + row_step][col + col_step] == 0):
 
                 # If inside the grid row dimensions
                 # If inside the grid col dimensions
@@ -302,19 +322,19 @@ def x_wing(row,col):
                 # If the value of the cell in the common row, and considered column, is zero
                 # If the value of the cell in the comsidered row and considered column, is zero
 
-                in_cell_range = Grid.range[row][col]                                                        # Get the range of the input cell
+                in_cell_range = Grid_List[-1].range[row][col]                                                        # Get the range of the input cell
 
                 for val in in_cell_range:                                                                   # For each vaue in the range of the input cel
-                    x_wing_row(row,col,row_step,col_step,val)                                               # Run x_wing on rows
-                    x_wing_col(row,col,row_step,col_step,val)                                               # Run x-wing on columns
+                    x_wing_row(Cell,row_step,col_step,val)                                               # Run x_wing on rows
+                    x_wing_col(Cell,row_step,col_step,val)                                               # Run x-wing on columns
 
 def one_left_in_range(row,col):
     """ Solver Algorithm #4:
     If there is only one value remaining in the range of
     the input cell, fill it with this value """
 
-    last_possibility = Grid.range[row][col].pop()
-    Grid.update(row, col, last_possibility)
+    last_possibility = Grid_List[-1].range[row][col].pop()
+    Grid_List[-1].update(row, col, last_possibility)
 
 def preemptive_sets():
 
@@ -335,15 +355,15 @@ def preemptive_sets():
             for unit_row in range(0,3):
                 for unit_col in range(0,3):
 
-                    Grid.Units[unit_row][unit_col].get_range()
+                    Grid_List[-1].Units[unit_row][unit_col].get_range()
                     print "Called Unit get_range"
-                    Grid.Units[unit_row][unit_col].get_combined_range()
+                    Grid_List[-1].Units[unit_row][unit_col].get_combined_range()
                     print "Called Unit get_combined_range"
-                    Grid.Units[unit_row][unit_col].get_combined_range_subsets()
+                    Grid_List[-1].Units[unit_row][unit_col].get_combined_range_subsets()
                     print "Called Unit get_combined_range_subsets"
-                    Grid.Units[unit_row][unit_col].get_preemptive_cells()
+                    Grid_List[-1].Units[unit_row][unit_col].get_preemptive_cells()
                     print "Called Unit get_preemptive_cells"
-                    if Grid.Units[unit_row][unit_col].check_num_preemptive():
+                    if Grid_List[-1].Units[unit_row][unit_col].check_num_preemptive():
                         print "Called Unit check_num_preemptive"
                         loop_again = True
                         break
@@ -351,10 +371,10 @@ def preemptive_sets():
                     break
         else:
             if method == 'Rows':
-                obj = Grid.Rows
+                obj = Grid_List[-1].Rows
                 print "Preemptive Rows"
             elif method == 'Cols':
-                obj = Grid.Cols
+                obj = Grid_List[-1].Cols
                 print "Preemptive Cols"
             for element in range(0,9):
 

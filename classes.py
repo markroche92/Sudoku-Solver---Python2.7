@@ -15,7 +15,7 @@ with open('incomplete.txt') as f:                                               
 class CommonAttributesMethods:
 
     """ This class initialises common attributes, and defines
-    common methods for Unit, Row and Col objects """
+    common methods for Unit, Row, Col, Cell classes """
 
     def __init__(self):
 
@@ -84,12 +84,11 @@ class CommonAttributesMethods:
             and Unit objects"""
 
             for subset in self.range_subsets:
-                if Grid.Cells[row][col].range <=set(subset) and len(Grid.Cells[row][col].range)>1:
-                    #print "subset: {}, range: {}".format(subset, Grid.Cells[row][col].range)
+                if self.Parent.Cells[row][col].range <=set(subset) and len(self.Parent.Cells[row][col].range)>1:
                     if subset in self.preemptive_dict.keys():
-                        self.preemptive_dict[subset].add(Grid.Cells[row][col])
+                        self.preemptive_dict[subset].add(self.Parent.Cells[row][col])
                     else:
-                        self.preemptive_dict[subset] = set([Grid.Cells[row][col]])
+                        self.preemptive_dict[subset] = set([self.Parent.Cells[row][col]])
 
 
         if 'Unit' in self.__str__():
@@ -129,21 +128,22 @@ class CommonAttributesMethods:
                 print "Get Unit Cells"
                 for row in range(self.row_start, self.row_end+1):
                     for col in range(self.col_start, self.col_end):
-                        cells.append(Grid.Cells[row][col])
+                        cells.append(self.Parent.Cells[row][col])
 
             elif 'Row' in self.__str__():
                 print "Get Row Cells"
                 for col in range(0,9):
-                    cells.append(Grid.Cells[self.row][col])
+                    cells.append(self.Parent.Cells[self.row][col])
 
             elif 'Col' in self.__str__():
                 print "Get Col Cells"
                 for row in range(0,9):
-                    cells.append(Grid.Cells[row][self.col])
+                    cells.append(self.Parent.Cells[row][self.col])
             return cells
 
         range_update = False
         for key in self.preemptive_dict:
+
             if len(key) == len(self.preemptive_dict[key]):
 
                 cells = get_cells(self)
@@ -154,22 +154,60 @@ class CommonAttributesMethods:
                         cols =[]
                         for val in key:
                             if cell.value == 0:
-                                range_old = Grid.range
+                                range_old = self.Parent.range
                                 rows.append(cell.row)
                                 cols.append(cell.col)
-                                Grid.remove_from_range(rows,cols,val)
+                                self.Parent.remove_from_range(rows,cols,val)
                                 print "Remove rows: {}".format(rows)
                                 print "Remove cols: {}".format(cols)
                                 print "Remove val: {}".format(val)
-                                Grid.get_cell_ranges()
-                                if Grid.range != range_old:
+                                self.Parent.get_cell_ranges()
+                                if self.Parent.range != range_old:
                                     range_update = True
                                     for x in range_old:
                                         print "{}".format(x)
                                     print "\n"
-                                    for y in Grid.range:
+                                    for y in self.Parent.range:
                                         print "{}".format(y)
         return range_update
+
+    def get_range(self):
+
+        """ Method to get the range of a Row,
+        Col, Unit or Cell """
+
+        if 'Unit' in self.__str__():
+
+            """ Returns a list of 3 lists, containing
+            the range of each cell in the unit """
+
+            self.range = [[col for col in row[self.col_start:self.col_end]] for row in self.Parent.range[self.row_start:self.row_end+1]]
+            return self.range
+
+        elif 'Row' in self.__str__():
+
+            """ Returns a list of sets containing the
+            range for each cell in the row """
+
+            self.range = [col for col in self.Parent.range[self.row][:]]
+            return self.range
+
+        elif 'Col' in self.__str__():
+
+            """ Returns a list of sets containing the
+            range for each cell in the col """
+
+            self.range = [row[self.col] for row in self.Parent.range]
+            return self.range
+
+        elif 'Cell' in self.__str__():
+
+            """ Function to return a set of possible values
+            which could be entered in this cell, based on row,
+            column, unit contents """
+
+            self.range = self.Parent.range[self.row][self.col]
+            return self.range                       # Return the set of possible values which could go in the cell
 
 #################################################################
 # Define classes which represent each aspect of the sudoku grid #
@@ -189,20 +227,20 @@ class Board:
         # on the Board at any time
         self.range = [[0 for x in range(0,9)] for y in range(0,9)]
 
-        self.value = grid                                                                   # Initialise values for Board, based on text file
-        self.Cells = [[Cell(row, col) for col in range(0,9)] for row in range(0,9)]         # Create Cells objects
-        self.Rows = [Row(col) for col in range(0,9)]                                        # Create Row objects
-        self.Units = [[Unit(row, col) for col in range(0,3)] for row in range(0,3)]         # Create Unit objects
-        self.Cols = [Col(row) for row in range(0,9)]                                        # Create Col objects
+        self.value = grid                                                                         # Initialise values for Board, based on text file
+        self.Cells = [[Cell(self, row, col) for col in range(0,9)] for row in range(0,9)]         # Create Cells objects. Feed object of class Board to the new object, so that it's parent is accessible.
+        self.Rows = [Row(self, row) for row in range(0,9)]                                        # Create Row objects. Feed object of class Board to the new object, so that it's parent is accessible.
+        self.Units = [[Unit(self, row, col) for col in range(0,3)] for row in range(0,3)]         # Create Unit objects. Feed object of class Board to the new object, so that it's parent is accessible.
+        self.Cols = [Col(self, col) for col in range(0,9)]                                        # Create Col objects. Feed object of class Board to the new object, so that it's parent is accessible.
 
         # Initialise cell ranges based on the initial contents of their row, column and unit
         for row in range(0,9):
             for col in range(0,9):
                 obj = self.get_obj(row,col)
-                self.Cells[row][col].range = remaining(obj[0], obj[1], obj[2], obj[3])      # Initialise the range of each Cell object by checking it's row, column and unit
-                self.range[row][col] = self.Cells[row][col].range                           # The range of each cell is not only accessible through the Cell object, but through Board.range
+                self.Cells[row][col].range = remaining(obj[0], obj[1], obj[2], obj[3])            # Initialise the range of each Cell object by checking it's row, column and unit
+                self.range[row][col] = self.Cells[row][col].range                                 # The range of each cell is not only accessible through the Cell object, but through Board.range
 
-    def full_list(self):                                                                    # Continue to try to solve the puzzle while there is a 0 in full_list
+    def full_list(self):                                                                          # Continue to try to solve the puzzle while there is a 0 in full_list
 
         """ Return all elements of the grid
         as a single list """
@@ -212,7 +250,7 @@ class Board:
             full_list.extend(row)
         return full_list
 
-    def update(self, row, col, val):                                                        # Method to update the values within the puzzle
+    def update(self, row, col, val):                                                              # Method to update the values within the puzzle
 
         """ Updates a single cell of the board
         with a certain value. This entails calling update
@@ -230,7 +268,7 @@ class Board:
         self.range_remove_last_possibility(row,col,val)
         self.get_cell_ranges()
 
-    def get_obj(self, row, col):                                                            # Used to get the Row, Col, Unit, Cell objects for a row and column
+    def get_obj(self, row, col):                                                                  # Used to get the Row, Col, Unit, Cell objects for a row and column
 
         """ Function to return a tuple of the (Row,
         Column, Unit, Cell) corresponding to this (row,col) """
@@ -238,7 +276,7 @@ class Board:
         (u_row,u_col) = get_unit_row_column(row, col)
         return (self.Rows[row],self.Cols[col],self.Units[u_row][u_col],self.Cells[row][col])
 
-    def get_cell_ranges(self):                                                              # Called directly after updating a value on the Board
+    def get_cell_ranges(self):                                                                    # Called directly after updating a value on the Board
 
         """ Function to return a list of sets of possible values for
         each cell in the grid """
@@ -253,7 +291,7 @@ class Board:
 
         return self.range
 
-    def remove_from_range(self, rows, cols, val):                                           # Update the dictionary of tuples to sets, with the values to be removed from the range of cells
+    def remove_from_range(self, rows, cols, val):                                                 # Update the dictionary of tuples to sets, with the values to be removed from the range of cells
 
         """ Function to update list of values to be removed from
         cell ranges, based on the findings of x-wing """
@@ -287,8 +325,8 @@ class Board:
         base_col = col - col % 3
 
 
-        for value in Grid.range[row][col]:
-            Grid.remove_from_range([row],[col],value)
+        for value in self.range[row][col]:
+            self.remove_from_range([row],[col],value)
 
 
         for r in range(base_row,base_row + 3):
@@ -296,7 +334,7 @@ class Board:
                 if (r,c) != (row,col):
                     rows.append(r)
                     cols.append(c)
-                    Grid.remove_from_range(rows,cols,val)
+                    self.remove_from_range(rows,cols,val)
 
 #################################################################
 #################################################################
@@ -306,7 +344,7 @@ class Unit(CommonAttributesMethods):
     """ This class defines attributes of a unit on the board,
     and methods for updating and acquiring unit info """
 
-    def __init__(self, i, j, grid = grid):                                                  # i is the row of the unit (1,2 or 3), j if the column of the unit (1,2 or 3)
+    def __init__(self, Parent, i, j, grid = grid):                                                  # i is the row of the unit (1,2 or 3), j if the column of the unit (1,2 or 3)
 
         # Start and end rows, columns of the unit
         self.unit_row = i
@@ -321,6 +359,8 @@ class Unit(CommonAttributesMethods):
                        grid[self.row_start+1][self.col_start:self.col_end], \
                        grid[self.row_end][self.col_start:self.col_end]]
         self.range =[]
+        self.Parent = Parent
+
         CommonAttributesMethods.__init__(self)
 
     def __str__(self):
@@ -364,14 +404,6 @@ class Unit(CommonAttributesMethods):
                     col_star = j
         return (row_star, col_star)
 
-    def get_range(self):
-
-        """ Returns a list of 3 lists, containing
-        the range of each cell in the unit """
-
-        self.range = [[col for col in row[self.col_start:self.col_end]] for row in Grid.range[self.row_start:self.row_end+1]]
-        return self.range
-
 #################################################################
 #################################################################
 
@@ -380,10 +412,11 @@ class Row(CommonAttributesMethods):
     """ This class defines attributes of a row on the board,
     and methods for updating and acquiring row info """
 
-    def __init__(self, row, grid = grid):
+    def __init__(self, Parent, row, grid = grid):
         self.value = grid[row]                       # Simply extract the row from the grid. This is a single list
         self.row = row
         self.range = []
+        self.Parent = Parent
         CommonAttributesMethods.__init__(self)
 
     def __str__(self):
@@ -413,14 +446,6 @@ class Row(CommonAttributesMethods):
                 break
         return i_star
 
-    def get_range(self):
-
-        """ Returns a list of sets containing the
-        range for each cell in the row """
-
-        self.range = [col for col in Grid.range[self.row][:]]
-        return self.range
-
 #################################################################
 #################################################################
 
@@ -429,13 +454,14 @@ class Col(CommonAttributesMethods):
     """ This class defines attributes of a column on the board,
     and methods for updating and acquiring column info """
 
-    def __init__(self, col, grid = grid):
+    def __init__(self, Parent, col, grid = grid):
         self.value = []
         self.col = col
         for row in range(0,9):
             self.value.append(grid[row][col])        # Column is a list
         self.Cells = [0,0,0,0,0,0,0,0]
         self.range = []
+        self.Parent = Parent
 
         CommonAttributesMethods.__init__(self)
 
@@ -447,7 +473,7 @@ class Col(CommonAttributesMethods):
         return "Column {}".format(self.col)
 
     def get_cells(self):
-        self.Cells = [Grid.Cells[x][self.col] for x in range(0,9)]
+        self.Cells = [self.Parent.Cells[x][self.col] for x in range(0,9)]
 
     def update(self, row, val):
 
@@ -468,26 +494,19 @@ class Col(CommonAttributesMethods):
                 break
         return i_star
 
-    def get_range(self):
-
-        """ Returns a list of sets containing the
-        range for each cell in the col """
-
-        self.range = [row[self.col] for row in Grid.range]
-        return self.range
-
 #################################################################
 #################################################################
 
-class Cell:
+class Cell(CommonAttributesMethods):
 
     """ This class defines attributes of a cell on the board,
     and methods for updating and acquiring cell info """
 
-    def __init__(self, row, col, grid = grid):
+    def __init__(self, Parent, row, col, grid = grid):
         self.value = grid[row][col]
         self.row = row                              # Each cell remembers which row it is in
         self.col = col                              # Each cell remembers which column it is in
+        self.Parent = Parent
 
     def __str__(self):
 
@@ -503,20 +522,5 @@ class Cell:
 
         self.value = val
 
-    def get_range(self):
-
-        """ Function to return a set of possible values
-        which could be entered in this cell, based on row,
-        column, unit contents """
-
-        self.range = Grid.range[self.row][self.col]
-        return self.range                       # Return the set of possible values which could go in the cell
-
 #################################################################
 #################################################################
-
-Grid = Board()
-
-for col in range(0,9):
-    Grid.Cols[col].get_cells()
-Grid.get_cell_ranges()

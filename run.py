@@ -1,15 +1,14 @@
-from solve import solve
-from classes import Grid
+from solve import solve, Grid_List
 
 # Run this code #
 
 solved = solve()
-for row in Grid.value:
+for row in Grid_List[-1].value:
     print "{}".format(row)
 
 if solved:
     with open("solution.txt","w") as text_file:
-        for row in Grid.value:
+        for row in Grid_List[-1].value:
             for i,element in enumerate(row):
                 text_file.write(str(element))
                 if i == len(row)-1:
