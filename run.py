@@ -3,8 +3,9 @@ from solve import solve, Grid_List
 # Run this code #
 
 solved = solve()
-for row in Grid_List[-1].value:
-    print "{}".format(row)
+#print "Solution:\n"
+#for row in Grid_List[-1].value:
+#    print "{}".format(row)
 
 if solved:
     with open("solution.txt","w") as text_file:

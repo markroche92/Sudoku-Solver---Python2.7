@@ -1,10 +1,11 @@
 from functions import remaining, get_base
 from get_ranges import get_row_range_wo, get_col_range_wo
-from classes import Board
+from classes import Board, grid_init
+import copy
 #################################################################
 #################################################################
 
-Grid = Board()
+Grid = Board(grid = grid_init)
 
 for col in range(0,9):
     Grid.Cols[col].get_cells()
@@ -12,7 +13,7 @@ Grid.get_cell_ranges()
 
 Grid_List = [Grid]                                                                   # Initialise Grid_List. This will act as a list of Board objects.
 
-
+record_random = []
 #################################################################
 #################################################################
 
@@ -23,77 +24,96 @@ def solve():
     i=0
 
     while 0 in Grid_List[-1].full_list():                                                                       # While there are still empty grid cells
-        update = False                                                                                          # Initialise update to False
-        for row in range(0,9):                                                                                  # Search each row (0 -> 8), zero based
-            for col in range(0,9):                                                                              # Search each column in each row (0 -> 8), zero based
+        update = False
 
-                if Grid_List[-1].value[row][col] == 0:                                                          # If this cell is empty
-                    i+=1
-                    print "{}".format(i)
-                    cell = Grid_List[-1].get_obj(row, col)                                                      # Get the (Row, Col, Unit, Cell) objects for the (row, col)
+        if not Grid_List[-1].is_valid() and len(Grid_List) > 1:
+            
+            del Grid_List[-1]
+            if (record_random[-1][0],record_random[-1][1]) in Grid_List[-1].range_remove:
+                Grid_List[-1].range_remove[(record_random[-1][0],record_random[-1][1])].add(record_random[-1][2])
+            else:
+                Grid_List[-1].range_remove[(record_random[-1][0],record_random[-1][1])] = set(record_random[-1][2])
 
-                    if try_fill_last_blank(cell):
+            Grid_List[-1].get_cell_ranges()
 
-                        """ Solver Algorithm #1:
-                        Check if there is a single blank cell remaining in
-                        the row, column or unit. If so, fill this cell with the
-                        appropriate value """
+        else:
 
-                        update = True
-                        break
+            for row in range(0,9):                                                                                  # Search each row (0 -> 8), zero based
+                for col in range(0,9):                                                                              # Search each column in each row (0 -> 8), zero based
 
-                    fill = check_if_only_in_range_this_cell(cell)                                               # Considers values which can go in empty cells in the same unit. If a value can only go in this cell, return the value
-                    if fill:                                                                                    # If fill not None
+                    if Grid_List[-1].value[row][col] == 0:                                                          # If this cell is empty
+                        i+=1
+                        cell = Grid_List[-1].get_obj(row, col)                                                      # Get the (Row, Col, Unit, Cell) objects for the (row, col)
 
-                        """ Solver Algorithm #2:
-                        Check if there is a value in the range of the current cell,
-                        which is not in the range of another cell in the row, col, or unit.
-                        If so, update the cell with this value """
+                        if try_fill_last_blank(cell):
 
-                        Grid_List[-1].update(row, col, fill)                                                    # Update objects
-                        update = True
-                        break
+                            """ Solver Algorithm #1:
+                            Check if there is a single blank cell remaining in
+                            the row, column or unit. If so, fill this cell with the
+                            appropriate value """
+
+                            update = True
+                            break
+
+                        fill = check_if_only_in_range_this_cell(cell)                                               # Considers values which can go in empty cells in the same unit. If a value can only go in this cell, return the value
+
+                        if fill:                                                                                    # If fill not None
+
+                            """ Solver Algorithm #2:
+                            Check if there is a value in the range of the current cell,
+                            which is not in the range of another cell in the row, col, or unit.
+                            If so, update the cell with this value """
+                            
+                            Grid_List[-1].update(row, col, fill)                                                    # Update objects
+                            update = True
+                            break
 
 
-                    old_range = Grid_List[-1].range
-                    x_wing(cell[3])
-                    if old_range != Grid_List[-1].range:
+                        old_range = Grid_List[-1].range
+                        x_wing(cell[3])
+                        if old_range != Grid_List[-1].range:
 
-                        """ Solver Algorithm #3:
-                        Run x-wing for rows and x-wing for columns, using the current cell as
-                        the base cell. If there is an update to the range of the grid, we
-                        say that update = True """
+                            """ Solver Algorithm #3:
+                            Run x-wing for rows and x-wing for columns, using the current cell as
+                            the base cell. If there is an update to the range of the grid, we
+                            say that update = True """
 
-                        update = True
-                        break
+                            update = True
+                            break
 
 
-                    if len(Grid_List[-1].range[row][col]) == 1:                                                 # If there is only 1 element in cell range (after x-wing)
+                        if len(Grid_List[-1].range[row][col]) == 1:                                                 # If there is only 1 element in cell range (after x-wing)
 
-                        """ Solver Algorithm #4:
-                        If there is only 1 value remaining in the range of a cell,
-                        fill the cell with this value  """
+                            """ Solver Algorithm #4:
+                            If there is only 1 value remaining in the range of a cell,
+                            fill the cell with this value  """
 
-                        one_left_in_range(row,col)
-                        update = True
-                        break
+                            one_left_in_range(row,col)
+                            update = True
+                            break
+                    else:                                                                                           # If the cell is populated, go to the next cell
+                        pass
+                if update:
+                    break
 
-                else:                                                                                           # If the cell is populated, go to the next cell
+
+
+
+            if not update:                                                                                          # If you have iterated through all rows and columns, without updating, consider preemptive sets
+
+                """ Solver Algorithm #5:
+                If no updates have occured, after considering all empty cells,
+                apply premptive set logic to units, rows, columns of the
+                grid. If cell ranges are updated, re-run the loop  """
+
+                loop_again = preemptive_sets() # Returns True only if the range hs changed based on applying preemptive sets
+
+                if not loop_again:
+            
+                    record_random.append(random_choice())
+                else:
                     pass
 
-        if not update:                                                                                          # If you have iterated through all rows and columns, without updating, consider preemptive sets
-
-            """ Solver Algorithm #5:
-            If no updates have occured, after considering all empty cells,
-            apply premptive set logic to units, rows, columns of the
-            grid. If cell ranges are updated, re-run the loop  """
-
-            loop_again = preemptive_sets()
-
-            if not loop_again:
-                print "Dead end reached. No more progress possible with basic algorithm"
-                Grid_List[-1].value
-                break
     if 0 not in Grid_List[-1].full_list():
         return True
     else:
@@ -119,24 +139,21 @@ def try_fill_last_blank(cell):
 
     if num_zeroes_unit == 1:                                                            # If only one empty cell in this unit, just fill in the value
         (rel_row, rel_col) = cell[2].rel_find(0)
-        #print "Update last element of a unit {},{} -> {}".format(base_row+rel_row, base_col+rel_col, 45 - sum([sum(x) for x in cell[2].value]))
+        val = 45 - sum([sum(x) for x in cell[2].value])
         Grid_List[-1].update(rel_row + base_row, rel_col + base_col, \
-                    45 - sum([sum(x) for x in cell[2].value]))                          # Value in num field is equal to the number missing from the unit
-
+                    val)                          # Value in num field is equal to the number missing from the unit
         return True
     elif num_zeroes_col == 1:
         abs_row = cell[1].abs_find(0)
-        #print "Update last in col, cell {},{} -> {}".format(abs_row, col, 45 - sum(cell[1].value))
+        val =  45 - sum(cell[1].value)
         Grid_List[-1].update(abs_row, col, \
-                    45 - sum(cell[1].value))                          # Value in num field is equal to the number missing from the unit
-
+                    val)                          # Value in num field is equal to the number missing from the unit
         return True
     elif num_zeroes_row == 1:
         abs_col = cell[0].abs_find(0)
-        #print "Update last in row, cell {},{} -> {}".format(row, abs_col, 45 - sum(cell[0].value))
+        val = 45 - sum(cell[0].value)
         Grid_List[-1].update(row, abs_col, \
                     45 - sum(cell[0].value))                          # Value in num field is equal to the number missing from the unit
-
         return True
     else:
         return False
@@ -190,7 +207,7 @@ def check_if_only_in_range_this_cell(cell):
 
         row = Cell.row
         col = Cell.col
-        possibilities_this_cell = Grid.range[row][col]
+        possibilities_this_cell = Grid_List[-1].range[row][col]
 
         (base_row, base_col) = get_base(row, col)                               # Get the base column and row for the row and column of the cell being considered
         fill = None                                                             # Initialise the final_value to None
@@ -200,15 +217,15 @@ def check_if_only_in_range_this_cell(cell):
                 for j in range(0,3):                                            # Iterate from 0 -> 2 (all columns in a unit)
                     if Unit.value[i][j] == 0 and (base_row + i,base_col + j) != (row, col) and (not not_valid):# If (i,j) is the position of an empty cell, but not the position of the input empty cell, and not_valid flag has not been raised
                         if (base_row + i != row) and (base_col + j != col):     # If neither on same row nor column as the input cell
-                            (Row, Col) = Grid.get_obj(base_row + i,base_col + j)[0:2]# Get the Row and Column object for cell which is neither on same column or row as the input cell
+                            (Row, Col) = Grid_List[-1].get_obj(base_row + i,base_col + j)[0:2]# Get the Row and Column object for cell which is neither on same column or row as the input cell
                             if (num not in Row.value) and (num not in Col.value):# If number is possible for this cell, stop considering this number
                                 not_valid = True
                         elif base_row + i != row:                               # If not on the same column as the input cell
-                            Row = Grid.get_obj(base_row + i,base_col + j)[0]    # Get the Row object for cell which is not on same row as input cell
+                            Row = Grid_List[-1].get_obj(base_row + i,base_col + j)[0]    # Get the Row object for cell which is not on same row as input cell
                             if (num not in Row.value):                          # If number is possible for this cell, stop considering this number
                                 not_valid = True
                         elif base_col + j != col:                               # If not on the same column as the input cell
-                            Col = Grid.get_obj(base_row + i,base_col + j)[1]    # Get the Column object for the cell which is not on same column as input cell
+                            Col = Grid_List[-1].get_obj(base_row + i,base_col + j)[1]    # Get the Column object for the cell which is not on same column as input cell
                             if (num not in Col.value):                          # If number is possible for this cell, stop considering this number
                                 not_valid = True
                     else:                                                       # Skip populated cells, and the input cell
@@ -255,7 +272,6 @@ def x_wing(Cell):
                 the value is the range of the cell 2 diagonally right of this cell AND
                 the value is NOT in the range of any of the cells in the row 2 rows below, excluding the cell corresponing to this col and that 2 to the right"""
 
-                print "Activate Row X-Wing row: {}, col: {}, row_step: {}, col_step: {}, val:{}".format(row,col,row_step,col_step, val)
                 row_list = set(range(0,9)).difference(set([row,row + row_step]))
                 rows =[]
                 cols = []
@@ -289,7 +305,6 @@ def x_wing(Cell):
                 the value is in the range of the cell 2 diagonally right of this cell AND
                 the value is NOT in the range of any of the cells in the col 2 cols over, excluding the cell corresponding to this row and that 2 rows down"""
 
-                print "Activate Col X-Wing row: {}, col: {}, row_step: {}, col_step: {}, val: {}".format(row,col,row_step,col_step, val)
                 col_list = set(range(0,9)).difference(set([col,col + col_step]))
                 rows =[]
                 cols = []
@@ -308,7 +323,6 @@ def x_wing(Cell):
 
     for row_step in range(1,9-row):                                                                         # row_step is the row width of the x-wing. It will not exceed grid bottom
         for col_step in range(1,9-col):                                                                     # col_step is the col width of the x-wing. It will not exceed grid width
-            #print "row: {}, col: {}, row_step: {}, col_step: {}".format(row,col,row_step,col_step)
             if row + row_step <= 8 and col + col_step <=8 and \
                (Grid_List[-1].value[row][col] == 0 and \
                 Grid_List[-1].value[row + row_step][col] == 0 and \
@@ -332,7 +346,7 @@ def one_left_in_range(row,col):
     """ Solver Algorithm #4:
     If there is only one value remaining in the range of
     the input cell, fill it with this value """
-
+    
     last_possibility = Grid_List[-1].range[row][col].pop()
     Grid_List[-1].update(row, col, last_possibility)
 
@@ -351,20 +365,14 @@ def preemptive_sets():
         loop_again = False
 
         if method == 'Units':
-            print "Preemptive Units"
             for unit_row in range(0,3):
                 for unit_col in range(0,3):
 
                     Grid_List[-1].Units[unit_row][unit_col].get_range()
-                    print "Called Unit get_range"
                     Grid_List[-1].Units[unit_row][unit_col].get_combined_range()
-                    print "Called Unit get_combined_range"
                     Grid_List[-1].Units[unit_row][unit_col].get_combined_range_subsets()
-                    print "Called Unit get_combined_range_subsets"
                     Grid_List[-1].Units[unit_row][unit_col].get_preemptive_cells()
-                    print "Called Unit get_preemptive_cells"
                     if Grid_List[-1].Units[unit_row][unit_col].check_num_preemptive():
-                        print "Called Unit check_num_preemptive"
                         loop_again = True
                         break
                 if loop_again:
@@ -372,10 +380,8 @@ def preemptive_sets():
         else:
             if method == 'Rows':
                 obj = Grid_List[-1].Rows
-                print "Preemptive Rows"
             elif method == 'Cols':
                 obj = Grid_List[-1].Cols
-                print "Preemptive Cols"
             for element in range(0,9):
 
                 obj[element].get_range()
@@ -402,3 +408,56 @@ def preemptive_sets():
         loop_again = True
 
     return loop_again
+
+def random_choice():
+
+    """ Solver Algorithm #6:
+    If preemtive sets cannot further reduce the range of
+    cells within the grid, randomly enter a value from the
+    range of a cell with the smallest range in the grid  """
+
+    def find_row_col_val():
+
+        """ Function to iterate through the rows and columns of
+        the range of the latest Grid object. Identify the cell in
+        which to perform random choice. Output the row, col and
+        randomly chosen value """
+
+        sizes = set()
+        for row in Grid_List[-1].range:
+            for element in row:
+                sizes.add(len(element))
+        min_size = min(sizes.difference(set([0])))
+
+        col_rand , row_rand  = None, None
+        for i, row in enumerate(Grid_List[-1].range):
+            for j, element in enumerate(row):
+                if len(element) == min_size:
+                    row_rand = i
+                    col_rand = j
+                    break
+            if col_rand:
+                break
+
+        for element in Grid_List[-1].range[row_rand ][col_rand ]:
+            random_choice = element
+            break
+        return (row_rand, col_rand, random_choice)
+
+    def create_next_grid(row_rand, col_rand, val):
+
+        """ Function to add a new Board object to the list Grid_List,
+        and update the new Board with the random choice value """
+
+        Grid_List.append(Board(grid = copy.deepcopy(Grid_List[-1].value)))
+
+        for col in range(0,9):
+            Grid_List[-1].Cols[col].get_cells()
+
+        Grid_List[-1].get_cell_ranges()
+
+        Grid_List[-1].update(row_rand, col_rand, val)
+
+    (row,col,val) = find_row_col_val()
+    create_next_grid(row,col,val)
+    return (row,col,val)

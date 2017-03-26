@@ -6,8 +6,9 @@ import csv
 
 with open('incomplete.txt') as f:                                                           # Open the incomplete sudoku puzzle
     reader = csv.reader(f, delimiter = ' ')                                                 # Read file
-    grid = [list(map(int,num)) for num in reader]                                           # Import data as a list of lists of integers
+    grid_init = [list(map(int,num)) for num in reader]                                           # Import data as a list of lists of integers
 
+            
 #################################################################
 ###### Parent class for Unit, Col, Row. Reusable methods. #######
 #################################################################
@@ -125,18 +126,15 @@ class CommonAttributesMethods:
 
             cells = []
             if 'Unit' in self.__str__():
-                print "Get Unit Cells"
                 for row in range(self.row_start, self.row_end+1):
                     for col in range(self.col_start, self.col_end):
                         cells.append(self.Parent.Cells[row][col])
 
             elif 'Row' in self.__str__():
-                print "Get Row Cells"
                 for col in range(0,9):
                     cells.append(self.Parent.Cells[self.row][col])
 
             elif 'Col' in self.__str__():
-                print "Get Col Cells"
                 for row in range(0,9):
                     cells.append(self.Parent.Cells[row][self.col])
             return cells
@@ -158,18 +156,12 @@ class CommonAttributesMethods:
                                 rows.append(cell.row)
                                 cols.append(cell.col)
                                 self.Parent.remove_from_range(rows,cols,val)
-                                print "Remove rows: {}".format(rows)
-                                print "Remove cols: {}".format(cols)
-                                print "Remove val: {}".format(val)
                                 self.Parent.get_cell_ranges()
                                 if self.Parent.range != range_old:
                                     range_update = True
-                                    for x in range_old:
-                                        print "{}".format(x)
-                                    print "\n"
-                                    for y in self.Parent.range:
-                                        print "{}".format(y)
         return range_update
+        
+        
 
     def get_range(self):
 
@@ -218,7 +210,7 @@ class Board:
     """ This class defines attributes of the sudoku board,
     and methods for updating and acquiring board info """
 
-    def __init__(self, grid = grid):
+    def __init__(self, grid):
         # Initialise the dictionary of (row,col) locations to values to be
         # removed from the range of the cell at this location
         self.range_remove = {}
@@ -228,10 +220,10 @@ class Board:
         self.range = [[0 for x in range(0,9)] for y in range(0,9)]
 
         self.value = grid                                                                         # Initialise values for Board, based on text file
-        self.Cells = [[Cell(self, row, col) for col in range(0,9)] for row in range(0,9)]         # Create Cells objects. Feed object of class Board to the new object, so that it's parent is accessible.
-        self.Rows = [Row(self, row) for row in range(0,9)]                                        # Create Row objects. Feed object of class Board to the new object, so that it's parent is accessible.
-        self.Units = [[Unit(self, row, col) for col in range(0,3)] for row in range(0,3)]         # Create Unit objects. Feed object of class Board to the new object, so that it's parent is accessible.
-        self.Cols = [Col(self, col) for col in range(0,9)]                                        # Create Col objects. Feed object of class Board to the new object, so that it's parent is accessible.
+        self.Cells = [[Cell(self, row, col, self.value) for col in range(0,9)] for row in range(0,9)]         # Create Cells objects. Feed object of class Board to the new object, so that it's parent is accessible.
+        self.Rows = [Row(self, row, self.value) for row in range(0,9)]                                        # Create Row objects. Feed object of class Board to the new object, so that it's parent is accessible.
+        self.Units = [[Unit(self, row, col, self.value) for col in range(0,3)] for row in range(0,3)]         # Create Unit objects. Feed object of class Board to the new object, so that it's parent is accessible.
+        self.Cols = [Col(self, col, self.value) for col in range(0,9)]                                        # Create Col objects. Feed object of class Board to the new object, so that it's parent is accessible.
 
         # Initialise cell ranges based on the initial contents of their row, column and unit
         for row in range(0,9):
@@ -308,9 +300,6 @@ class Board:
                        col in range(0,9)] for row in range(0,9)]
 
     def range_remove_last_possibility(self,row,col,val):
-        if row == 4 and col ==8 and val == 7:
-            pass
-
         rows =[]
         cols = []
         for i in range(0,9):
@@ -324,10 +313,8 @@ class Board:
         base_row = row - row % 3
         base_col = col - col % 3
 
-
         for value in self.range[row][col]:
             self.remove_from_range([row],[col],value)
-
 
         for r in range(base_row,base_row + 3):
             for c in range(base_col, base_col + 3):
@@ -335,6 +322,43 @@ class Board:
                     rows.append(r)
                     cols.append(c)
                     self.remove_from_range(rows,cols,val)
+
+    def is_valid(self):
+
+        """ Function will return True if the sudoku grid is
+        still valid (i.e. rules of the puzzle have not been
+        broken) """
+
+        is_valid = True
+
+        for val in range(1,10):
+            for Row in self.Rows:
+                if Row.value.count(val) > 1 or sum(Row.value) > 45:
+                    is_valid = False
+                    break
+            if not is_valid:
+                break
+
+            for Col in self.Cols:
+                if Col.value.count(val) > 1 or sum(Col.value) > 45:
+                    is_valid = False
+                    break
+            if not is_valid:
+                break
+
+            for u_row in range(0,3):
+                for u_col in range(0,3):
+                    val_list = [x for r in self.Units[u_row][u_col].value for x in r]
+                    if val_list.count(val) > 1 \
+                       or sum(val_list) > 45:
+                        is_valid = False
+                        break
+                if not is_valid:
+                    break
+        return is_valid
+
+
+
 
 #################################################################
 #################################################################
@@ -344,7 +368,7 @@ class Unit(CommonAttributesMethods):
     """ This class defines attributes of a unit on the board,
     and methods for updating and acquiring unit info """
 
-    def __init__(self, Parent, i, j, grid = grid):                                                  # i is the row of the unit (1,2 or 3), j if the column of the unit (1,2 or 3)
+    def __init__(self, Parent, i, j, grid):                                                  # i is the row of the unit (1,2 or 3), j if the column of the unit (1,2 or 3)
 
         # Start and end rows, columns of the unit
         self.unit_row = i
@@ -412,7 +436,7 @@ class Row(CommonAttributesMethods):
     """ This class defines attributes of a row on the board,
     and methods for updating and acquiring row info """
 
-    def __init__(self, Parent, row, grid = grid):
+    def __init__(self, Parent, row, grid):
         self.value = grid[row]                       # Simply extract the row from the grid. This is a single list
         self.row = row
         self.range = []
@@ -454,7 +478,7 @@ class Col(CommonAttributesMethods):
     """ This class defines attributes of a column on the board,
     and methods for updating and acquiring column info """
 
-    def __init__(self, Parent, col, grid = grid):
+    def __init__(self, Parent, col, grid):
         self.value = []
         self.col = col
         for row in range(0,9):
@@ -502,7 +526,7 @@ class Cell(CommonAttributesMethods):
     """ This class defines attributes of a cell on the board,
     and methods for updating and acquiring cell info """
 
-    def __init__(self, Parent, row, col, grid = grid):
+    def __init__(self, Parent, row, col, grid):
         self.value = grid[row][col]
         self.row = row                              # Each cell remembers which row it is in
         self.col = col                              # Each cell remembers which column it is in
