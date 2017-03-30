@@ -50,19 +50,8 @@ def get_base(row, col):
     """ Return the base row and column
     of the unit for a given cell """
 
-    if row >= 6:                                                    # For row number, get the base row number (i.e. where the unit starts)
-        base_row = 6
-    elif row >= 3:
-        base_row = 3
-    else:
-        base_row = 0
-
-    if col >= 6:                                                    # For column number, get the base column number (i.e. where the unit starts)
-        base_col = 6
-    elif col >= 3:
-        base_col = 3
-    else:
-        base_col = 0
+    base_row = row - row % 3
+    base_col = col - col % 3
 
     return (base_row, base_col)                                     # Return base (row, column) tuple
 

@@ -1,14 +1,13 @@
-from functions import remaining, get_unit_row_column
+from functions import remaining, get_unit_row_column, get_base
 from itertools import combinations, chain
 import csv
 
+
 # Load the initial grid from a text file
+#with open('incomplete.txt') as f:                                                           # Open the incomplete sudoku puzzle
+#    reader = csv.reader(f, delimiter = ' ')                                                 # Read file
+#    grid_init = [list(map(int,num)) for num in reader]                                      # Import data as a list of lists of integers
 
-with open('incomplete.txt') as f:                                                           # Open the incomplete sudoku puzzle
-    reader = csv.reader(f, delimiter = ' ')                                                 # Read file
-    grid_init = [list(map(int,num)) for num in reader]                                           # Import data as a list of lists of integers
-
-            
 #################################################################
 ###### Parent class for Unit, Col, Row. Reusable methods. #######
 #################################################################
@@ -160,8 +159,8 @@ class CommonAttributesMethods:
                                 if self.Parent.range != range_old:
                                     range_update = True
         return range_update
-        
-        
+
+
 
     def get_range(self):
 
@@ -237,9 +236,7 @@ class Board:
         """ Return all elements of the grid
         as a single list """
 
-        full_list = []
-        for row in self.value:
-            full_list.extend(row)
+        full_list = [x for row in self.value for x in row]
         return full_list
 
     def update(self, row, col, val):                                                              # Method to update the values within the puzzle
@@ -304,14 +301,13 @@ class Board:
         cols = []
         for i in range(0,9):
             if i != row:
-               rows.append(i)
-               cols.append(col)
-        for j in range(0,9):
-            if j != col:
+                rows.append(i)
+                cols.append(col)
+            if i != col:
                 rows.append(row)
-                cols.append(j)
-        base_row = row - row % 3
-        base_col = col - col % 3
+                cols.append(i)
+
+        (base_row, base_col) = get_base(row,col)
 
         for value in self.range[row][col]:
             self.remove_from_range([row],[col],value)
@@ -356,6 +352,27 @@ class Board:
                 if not is_valid:
                     break
         return is_valid
+
+    def is_complete(self):
+
+        """ Function will return True if the sudoku grid's units, rows
+        and columns all sum to 45, there are no zeros, and 1, 2, 3, 4, 5,
+        6, 7, 8, 9 all occur in each Row, Cell, Unit """
+
+        is_complete = True
+        for row in range(0,9):
+            for col in range(0,9):
+                (u_row, u_col) = get_unit_row_column(row, col)
+                val_list = [x for r in self.Units[u_row][u_col].value for x in r]
+                vals = set([1,2,3,4,5,6,7,8,9])
+                if (sum(self.Rows[row].value) != 45 or sum(self.Cols[col].value) != 45 or \
+                 sum(val_list) != 45 or 0 in self.full_list() or len(set(self.Rows[row].value).difference(vals)) > 0 or \
+                 len(set(self.Cols[col].value).difference(vals)) > 0 or len(set(val_list).difference(vals)) > 0):
+                    is_complete = False
+                    break
+            if not is_complete:
+                break
+        return is_complete
 
 
 
@@ -406,10 +423,7 @@ class Unit(CommonAttributesMethods):
         """ Get the full set of values present
         in a unit """
 
-        full_list = set()
-        for row in self.value:
-            for num in row:
-                full_list.add(num)
+        full_list = {num for row in self.value for num in row}
         return full_list
 
     def rel_find(self, val):

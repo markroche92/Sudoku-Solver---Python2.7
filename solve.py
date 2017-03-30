@@ -1,21 +1,12 @@
 from functions import remaining, get_base
 from get_ranges import get_row_range_wo, get_col_range_wo
-from classes import Board, grid_init
+from classes import Board
 import copy
+import os
+import csv
 #################################################################
 #################################################################
 
-Grid = Board(grid = grid_init)
-
-for col in range(0,9):
-    Grid.Cols[col].get_cells()
-Grid.get_cell_ranges()
-
-Grid_List = [Grid]                                                                   # Initialise Grid_List. This will act as a list of Board objects.
-
-record_random = []
-#################################################################
-#################################################################
 
 def solve():
 
@@ -27,12 +18,12 @@ def solve():
         update = False
 
         if not Grid_List[-1].is_valid() and len(Grid_List) > 1:
-            
+
             del Grid_List[-1]
             if (record_random[-1][0],record_random[-1][1]) in Grid_List[-1].range_remove:
                 Grid_List[-1].range_remove[(record_random[-1][0],record_random[-1][1])].add(record_random[-1][2])
             else:
-                Grid_List[-1].range_remove[(record_random[-1][0],record_random[-1][1])] = set(record_random[-1][2])
+                Grid_List[-1].range_remove[(record_random[-1][0],record_random[-1][1])] = set([record_random[-1][2]])
 
             Grid_List[-1].get_cell_ranges()
 
@@ -63,7 +54,7 @@ def solve():
                             Check if there is a value in the range of the current cell,
                             which is not in the range of another cell in the row, col, or unit.
                             If so, update the cell with this value """
-                            
+
                             Grid_List[-1].update(row, col, fill)                                                    # Update objects
                             update = True
                             break
@@ -109,15 +100,15 @@ def solve():
                 loop_again = preemptive_sets() # Returns True only if the range hs changed based on applying preemptive sets
 
                 if not loop_again:
-            
+
                     record_random.append(random_choice())
                 else:
                     pass
 
     if 0 not in Grid_List[-1].full_list():
-        return True
+        return (True, Grid_List[-1])
     else:
-        return False
+        return (False, None)
 
 """ Solver Algorithms: """
 
@@ -346,7 +337,7 @@ def one_left_in_range(row,col):
     """ Solver Algorithm #4:
     If there is only one value remaining in the range of
     the input cell, fill it with this value """
-    
+
     last_possibility = Grid_List[-1].range[row][col].pop()
     Grid_List[-1].update(row, col, last_possibility)
 
@@ -461,3 +452,41 @@ def random_choice():
     (row,col,val) = find_row_col_val()
     create_next_grid(row,col,val)
     return (row,col,val)
+
+
+
+test_dir = os.path.join('C:\\','Users','markr','OneDrive','Documents','GitHub','Sudoku-Solver','Tests')
+code_dir = os.path.join('C:\\','Users','markr','OneDrive','Documents','GitHub','Sudoku-Solver')
+os.chdir(test_dir)
+test_inputs = [(filename,filename.split('incomplete')[1]) for filename in os.listdir(os.curdir) if 'incomplete' in filename]
+counter = 0
+for filename in test_inputs:
+    with open(filename[0]) as f:
+        counter += 1
+        reader = csv.reader(f, delimiter = ' ')
+        grid_init = [list(map(int,num)) for num in reader]
+        Grid_List = []
+        Grid = Board(grid = grid_init)
+
+        for col in range(0,9):
+            Grid.Cols[col].get_cells()
+        Grid.get_cell_ranges()
+        record_random = []
+        Grid_List = [Grid]
+
+        os.chdir(code_dir)
+        solved = solve()
+        if solved[1].is_valid() and solved[1].is_complete():
+           print "Test {} PASSED".format(counter)
+        else:
+           print "Test {} FAILED".format(counter)
+        if solved[0]:
+            os.chdir(test_dir)
+            with open("".join(["solution",filename[1]]),"w") as text_file:
+                for row in solved[1].value:
+                    for i,element in enumerate(row):
+                        text_file.write(str(element))
+                        if i == len(row)-1:
+                            text_file.write("\n")
+                        else:
+                            text_file.write(" ")
