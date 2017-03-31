@@ -6,7 +6,7 @@ def remaining(Row, Col, Unit, Cell):
     """ Get the set of remaining possible values
     for a cell """
     if Cell.value == 0:
-        all_vals = set(range(1,10))
+        all_vals = set(xrange(1,10))
         row_vals = set(Row.value)
         col_vals = set(Col.value)
         unit_vals = Unit.full_list()

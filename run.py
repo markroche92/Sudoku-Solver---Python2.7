@@ -1,13 +1,14 @@
 from solve import solve, Grid_List
 
 # Run this code #
+#filename = 'incomplete.txt'
 
 solved = solve()
 #print "Solution:\n"
 #for row in Grid_List[-1].value:
 #    print "{}".format(row)
 
-if solved:
+if solved[0]:
     with open("solution.txt","w") as text_file:
         for row in Grid_List[-1].value:
             for i,element in enumerate(row):

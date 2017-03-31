@@ -29,8 +29,8 @@ def solve():
 
         else:
 
-            for row in range(0,9):                                                                                  # Search each row (0 -> 8), zero based
-                for col in range(0,9):                                                                              # Search each column in each row (0 -> 8), zero based
+            for row in xrange(0,9):                                                                                  # Search each row (0 -> 8), zero based
+                for col in xrange(0,9):                                                                              # Search each column in each row (0 -> 8), zero based
 
                     if Grid_List[-1].value[row][col] == 0:                                                          # If this cell is empty
                         i+=1
@@ -204,8 +204,8 @@ def check_if_only_in_range_this_cell(cell):
         fill = None                                                             # Initialise the final_value to None
         for num in possibilities_this_cell:                                     # Search all cells in unit, for if they can take each possibility for input cell
             not_valid = False                                                   # Every possible number if initially considered valid
-            for i in range(0,3):                                                # Iterate from 0 -> 2 (all rows in a unit)
-                for j in range(0,3):                                            # Iterate from 0 -> 2 (all columns in a unit)
+            for i in xrange(0,3):                                                # Iterate from 0 -> 2 (all rows in a unit)
+                for j in xrange(0,3):                                            # Iterate from 0 -> 2 (all columns in a unit)
                     if Unit.value[i][j] == 0 and (base_row + i,base_col + j) != (row, col) and (not not_valid):# If (i,j) is the position of an empty cell, but not the position of the input empty cell, and not_valid flag has not been raised
                         if (base_row + i != row) and (base_col + j != col):     # If neither on same row nor column as the input cell
                             (Row, Col) = Grid_List[-1].get_obj(base_row + i,base_col + j)[0:2]# Get the Row and Column object for cell which is neither on same column or row as the input cell
@@ -263,7 +263,7 @@ def x_wing(Cell):
                 the value is the range of the cell 2 diagonally right of this cell AND
                 the value is NOT in the range of any of the cells in the row 2 rows below, excluding the cell corresponing to this col and that 2 to the right"""
 
-                row_list = set(range(0,9)).difference(set([row,row + row_step]))
+                row_list = set(xrange(0,9)).difference(set([row,row + row_step]))
                 rows =[]
                 cols = []
                 for y in row_list:
@@ -312,8 +312,8 @@ def x_wing(Cell):
     row = Cell.row
     col = Cell.col
 
-    for row_step in range(1,9-row):                                                                         # row_step is the row width of the x-wing. It will not exceed grid bottom
-        for col_step in range(1,9-col):                                                                     # col_step is the col width of the x-wing. It will not exceed grid width
+    for row_step in xrange(1,9-row):                                                                         # row_step is the row width of the x-wing. It will not exceed grid bottom
+        for col_step in xrange(1,9-col):                                                                     # col_step is the col width of the x-wing. It will not exceed grid width
             if row + row_step <= 8 and col + col_step <=8 and \
                (Grid_List[-1].value[row][col] == 0 and \
                 Grid_List[-1].value[row + row_step][col] == 0 and \
@@ -356,8 +356,8 @@ def preemptive_sets():
         loop_again = False
 
         if method == 'Units':
-            for unit_row in range(0,3):
-                for unit_col in range(0,3):
+            for unit_row in xrange(0,3):
+                for unit_col in xrange(0,3):
 
                     Grid_List[-1].Units[unit_row][unit_col].get_range()
                     Grid_List[-1].Units[unit_row][unit_col].get_combined_range()
@@ -373,7 +373,7 @@ def preemptive_sets():
                 obj = Grid_List[-1].Rows
             elif method == 'Cols':
                 obj = Grid_List[-1].Cols
-            for element in range(0,9):
+            for element in xrange(0,9):
 
                 obj[element].get_range()
                 obj[element].get_combined_range()
@@ -442,7 +442,7 @@ def random_choice():
 
         Grid_List.append(Board(grid = copy.deepcopy(Grid_List[-1].value)))
 
-        for col in range(0,9):
+        for col in xrange(0,9):
             Grid_List[-1].Cols[col].get_cells()
 
         Grid_List[-1].get_cell_ranges()
@@ -468,7 +468,7 @@ for filename in test_inputs:
         Grid_List = []
         Grid = Board(grid = grid_init)
 
-        for col in range(0,9):
+        for col in xrange(0,9):
             Grid.Cols[col].get_cells()
         Grid.get_cell_ranges()
         record_random = []

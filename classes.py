@@ -65,7 +65,7 @@ class CommonAttributesMethods:
         """ Returns the list of all subsets (as tuples) of 2 or
         more elements for the superset of combined_range """
 
-        list_of_tuples = list(chain(*[combinations(list(self.combined_range), length) for length in range(2,10)]))
+        list_of_tuples = list(chain(*[combinations(list(self.combined_range), length) for length in xrange(2,10)]))
         #self.range_subsets = [set(elements) for elements in list_of_tuples]
         self.range_subsets = list_of_tuples
         return self.range_subsets
@@ -98,12 +98,12 @@ class CommonAttributesMethods:
             return self.preemptive_dict
 
         elif 'Row' in self.__str__():
-            for col in range(0,9):
+            for col in xrange(0,9):
                 conditional(self,self.row,col)
             return self.preemptive_dict
 
         elif 'Col' in self.__str__():
-            for row in range(0,9):
+            for row in xrange(0,9):
                 conditional(self,row,self.col)
             return self.preemptive_dict
 
@@ -125,16 +125,16 @@ class CommonAttributesMethods:
 
             cells = []
             if 'Unit' in self.__str__():
-                for row in range(self.row_start, self.row_end+1):
-                    for col in range(self.col_start, self.col_end):
+                for row in xrange(self.row_start, self.row_end+1):
+                    for col in xrange(self.col_start, self.col_end):
                         cells.append(self.Parent.Cells[row][col])
 
             elif 'Row' in self.__str__():
-                for col in range(0,9):
+                for col in xrange(0,9):
                     cells.append(self.Parent.Cells[self.row][col])
 
             elif 'Col' in self.__str__():
-                for row in range(0,9):
+                for row in xrange(0,9):
                     cells.append(self.Parent.Cells[row][self.col])
             return cells
 
@@ -299,7 +299,7 @@ class Board:
     def range_remove_last_possibility(self,row,col,val):
         rows =[]
         cols = []
-        for i in range(0,9):
+        for i in xrange(0,9):
             if i != row:
                 rows.append(i)
                 cols.append(col)
@@ -327,7 +327,7 @@ class Board:
 
         is_valid = True
 
-        for val in range(1,10):
+        for val in xrange(1,10):
             for Row in self.Rows:
                 if Row.value.count(val) > 1 or sum(Row.value) > 45:
                     is_valid = False
@@ -342,8 +342,8 @@ class Board:
             if not is_valid:
                 break
 
-            for u_row in range(0,3):
-                for u_col in range(0,3):
+            for u_row in xrange(0,3):
+                for u_col in xrange(0,3):
                     val_list = [x for r in self.Units[u_row][u_col].value for x in r]
                     if val_list.count(val) > 1 \
                        or sum(val_list) > 45:
@@ -360,8 +360,8 @@ class Board:
         6, 7, 8, 9 all occur in each Row, Cell, Unit """
 
         is_complete = True
-        for row in range(0,9):
-            for col in range(0,9):
+        for row in xrange(0,9):
+            for col in xrange(0,9):
                 (u_row, u_col) = get_unit_row_column(row, col)
                 val_list = [x for r in self.Units[u_row][u_col].value for x in r]
                 vals = set([1,2,3,4,5,6,7,8,9])
@@ -495,7 +495,7 @@ class Col(CommonAttributesMethods):
     def __init__(self, Parent, col, grid):
         self.value = []
         self.col = col
-        for row in range(0,9):
+        for row in xrange(0,9):
             self.value.append(grid[row][col])        # Column is a list
         self.Cells = [0,0,0,0,0,0,0,0]
         self.range = []
@@ -511,7 +511,7 @@ class Col(CommonAttributesMethods):
         return "Column {}".format(self.col)
 
     def get_cells(self):
-        self.Cells = [self.Parent.Cells[x][self.col] for x in range(0,9)]
+        self.Cells = [self.Parent.Cells[x][self.col] for x in xrange(0,9)]
 
     def update(self, row, val):
 
