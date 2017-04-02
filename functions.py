@@ -5,42 +5,25 @@ def remaining(Row, Col, Unit, Cell):
 
     """ Get the set of remaining possible values
     for a cell """
+
     if Cell.value == 0:
         all_vals = set(xrange(1,10))
-        row_vals = set(Row.value)
-        col_vals = set(Col.value)
-        unit_vals = Unit.full_list()
-        return all_vals.difference(row_vals | col_vals | unit_vals)     # | denotes union
+        return all_vals.difference(set(Row.value) | set(Col.value) \
+         | Unit.full_list())                                        # Returns set of possible values for cell
     else:
         return set()
 
 #################################################################
 #################################################################
 
-def get_unit_row_column(act_row, act_col):                          # Necessary - called by get_obj()
+def get_unit_row_column(act_row, act_col):
 
     """ Function returns the unit row and unit column
     for an input row number and column number """
 
-    if act_row >= 0 and act_row <=2:
-        unit_row = 0
-    elif act_row >=3 and act_row <=5:
-        unit_row = 1
-    elif act_row >=6 and act_row <=8:
-        unit_row = 2
-    else:
-        unit_row = None
+    get_unit = lambda x: (x - x % 3)/3
 
-    if act_col >= 0 and act_col <=2:
-        unit_col = 0
-    elif act_col >=3 and act_col <=5:
-        unit_col = 1
-    elif act_col >=6 and act_col <=8:
-        unit_col= 2
-    else:
-        unit_col = None
-
-    return (unit_row, unit_col)
+    return tuple(map(get_unit,(act_row,act_col)))                     # Return unit row and column index in tuple
 
 #################################################################
 #################################################################
@@ -50,10 +33,9 @@ def get_base(row, col):
     """ Return the base row and column
     of the unit for a given cell """
 
-    base_row = row - row % 3
-    base_col = col - col % 3
+    norm = lambda x: x - x % 3
 
-    return (base_row, base_col)                                     # Return base (row, column) tuple
+    return tuple(map(norm,(row,col)))                                  # Return base (row, column) tuple
 
 #################################################################
 #################################################################
