@@ -435,8 +435,8 @@ def random_choice():
 
 
 
-test_dir = os.path.join('C:\\','Users','markr','OneDrive','Documents','GitHub','Sudoku-Solver','Tests')
-code_dir = os.path.join('C:\\','Users','markr','OneDrive','Documents','GitHub','Sudoku-Solver')
+test_dir = os.path.join('D:\\','GitHub','Sudoku-Solver','Tests')
+code_dir = os.path.join('D:\\','GitHub','Sudoku-Solver')
 os.chdir(test_dir)
 test_inputs = iter((filename,filename.split('incomplete')[1]) for filename in os.listdir(os.curdir) if 'incomplete' in filename)
 counter = 0
